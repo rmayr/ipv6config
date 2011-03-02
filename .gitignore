@@ -1,0 +1,10 @@
+*~
+.~lock.*#
+*.backup
+*.old
+*.aux
+*.blg
+*.bbl
+*.bib.bak
+bin/
+gen/
