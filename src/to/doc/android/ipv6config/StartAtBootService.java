@@ -1,4 +1,4 @@
-package to.doc.android.ipv6privacy;
+package to.doc.android.ipv6config;
 
 import android.app.Service;
 import android.content.Intent;
@@ -22,10 +22,9 @@ public class StartAtBootService extends Service
 	    public int onStartCommand(Intent intent, int flags, int startId) 
 	    {
 	    	Log.v("StartServiceAtBoot", "StartAtBootService -- onStartCommand()");	        
- 
-	        // We want this service to continue running until it is explicitly
-	        // stopped, so return sticky.
-	        return START_STICKY;
+
+	    	// we only need to apply the settings once, they will remain in the kernel space
+	    	return Service.START_NOT_STICKY;
 	    }
  
 	    /*
@@ -33,7 +32,8 @@ public class StartAtBootService extends Service
 	     * onStartCommand() instead, or compile against API Level 5 and
 	     * use both.
 	     * http://android-developers.blogspot.com/2010/02/service-api-changes-starting-with.html
-	    	@Override
+	     */
+	    	/*@Override
 	    	public void onStart(Intent intent, int startId)
 	    	{
 	    		Log.v("StartServiceAtBoot", "StartAtBootService -- onStart()");	        

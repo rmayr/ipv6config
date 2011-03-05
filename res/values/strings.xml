@@ -2,4 +2,8 @@
 <resources>
     <string name="hello">Hello World, IPv6Config!</string>
     <string name="app_name">IPv6Config</string>
+    <string name="ipv6Address">IPv6 addresses:</string>
+    <string name="autostart">Apply settings on device bootup</string>
+    <string name="ipv6privacy">Enable IPv6 address privacy</string>
+    <string name="forceAddressReload">Force new IPv6 address</string>
 </resources>

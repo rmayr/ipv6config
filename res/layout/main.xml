@@ -6,7 +6,9 @@
     >
 <TextView  
     android:layout_width="fill_parent" 
-    android:layout_height="wrap_content" 
-    android:text="@string/hello"
-    />
+    android:layout_height="wrap_content" android:text="@string/ipv6Address" android:id="@+id/adressLabel"/>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TextView" android:id="@+id/addresses"></TextView>
+<CheckBox android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/autostart" android:id="@+id/checkBox1"></CheckBox>
+<CheckBox android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ipv6privacy" android:id="@+id/checkBox2"></CheckBox>
+<Button android:layout_width="wrap_content" android:id="@+id/button1" android:layout_height="wrap_content" android:text="@string/forceAddressReload" android:onClick="forceAddressReload"></Button>
 </LinearLayout>

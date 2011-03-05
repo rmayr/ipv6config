@@ -1,4 +1,4 @@
-package to.doc.android.ipv6privacy;
+package to.doc.android.ipv6config;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
