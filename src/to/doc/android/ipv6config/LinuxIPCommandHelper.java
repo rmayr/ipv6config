@@ -3,6 +3,7 @@ package to.doc.android.ipv6config;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
@@ -34,13 +35,54 @@ public class LinuxIPCommandHelper {
 
 	private final static String ETHTOOL_COMMAND = "/usr/sbin/ethtool ";
 
+	public static class InetAddressWithNetmask {
+		public InetAddress address;
+		public int subnetLength;
+
+		public InetAddressWithNetmask() {}
+		public InetAddressWithNetmask(InetAddress addr, int maskLength) {
+			this.address = addr;
+			this.subnetLength = maskLength;
+		}
+		
+		public boolean isIPv6GlobalMacDerivedAddress() {
+			if (address == null || ! (address instanceof Inet6Address))
+				// only check valid IPv6 addresses
+				return false;
+			Inet6Address addr6 = (Inet6Address) address;
+			
+			if (addr6.isLinkLocalAddress())
+				// if it's link-local, it may be MAC-derived, but not privacy sensitive
+				return false;
+			
+			byte[] addrByte = addr6.getAddress();
+			// MAC-derivation adds "FFFE" in the middle of the 48 bits MAC
+			return addrByte[11] == 0xff && addrByte[12] == 0xfe;
+		}
+	}
+	
 	public static class InterfaceDetail {
 		public String name;
 		public String mac;
 		public boolean isUp;
 		public int mtu;
-		public LinkedList<Inet4Address> ipv4Addresses = new LinkedList<Inet4Address>();
-		public LinkedList<Inet6Address> ipv6Addresses = new LinkedList<Inet6Address>();
+		public LinkedList<InetAddressWithNetmask> addresses = new LinkedList<InetAddressWithNetmask>();
+		
+		public LinkedList<Inet4Address> getLocalIpv4Addresses() {
+			LinkedList<Inet4Address> ret = new LinkedList<Inet4Address>();
+			for (InetAddressWithNetmask addr : addresses) 
+				if (addr.address != null && addr.address instanceof Inet4Address)
+					ret.add((Inet4Address) addr.address);
+			return ret;
+		}
+		
+		public LinkedList<Inet6Address> getLocalIpv6Addresses() {
+			LinkedList<Inet6Address> ret = new LinkedList<Inet6Address>();
+			for (InetAddressWithNetmask addr : addresses) 
+				if (addr.address != null && addr.address instanceof Inet6Address)
+					ret.add((Inet6Address) addr.address);
+			return ret;
+		}
 	}
 	
 	/** Returns interface details for all currently known interfaces. */
@@ -140,7 +182,7 @@ public class LinuxIPCommandHelper {
 						}
 					}
 				}
-//				logger.debug("Read interface line: " + cur.name + ", " + cur.mtu + ", " + cur.isUp);
+				logger.finer("Read interface line: " + cur.name + ", " + cur.mtu + ", " + cur.isUp);
 			}
 			else {
 				logger.finest("getIfaceOutput: block continued");
@@ -157,22 +199,21 @@ public class LinuxIPCommandHelper {
 
 						if (opt.equals(ETHERNET_INTERFACE)) {
 							cur.mac = value;
-//							logger.debug("getIfaceOutput: found mac " + cur.mac
-//									+ " for " + cur.name);
-						} else if (opt.equals(ADDRESS_IPV4)) {
-							IPv4 addr;
-							if (value.contains("/"))
-								addr = new IPv4SubnetMask(value);
-							else
-								addr = new IPv4(value);
-							cur.ipv4Addresses.add(addr);
-//							logger.debug("getIfaceOutput: found IPv4 " + addr
-//									+ " for " + cur.name);
-						} else if (opt.equals(ADDRESS_IPV6)) {
-							IPv6SubnetMask addr = new IPv6SubnetMask(value);
-							cur.ipv6Addresses.add(addr);
-//							logger.debug("getIfaceOutput: found IPv6 " + addr
-//									+ " for " + cur.name);
+							logger.finest("getIfaceOutput: found mac " + cur.mac
+									+ " for " + cur.name);
+						} else if (opt.equals(ADDRESS_IPV4) || opt.equals(ADDRESS_IPV6)) {
+							InetAddressWithNetmask addr = new InetAddressWithNetmask();
+							if (value.contains("/")) {
+								addr.address = InetAddress.getByName(value.substring(0, value.indexOf('/')));
+								addr.subnetLength = Integer.parseInt(value.substring(value.indexOf('/')));
+							}
+							else {
+								addr.address = InetAddress.getByName(value);
+								addr.subnetLength = addr.address instanceof Inet4Address ? 32 : 128;
+							}
+							cur.addresses.add(addr);
+							logger.finest("getIfaceOutput: found IP address " + addr
+									+ " for " + cur.name);
 						}
 				}
 			}

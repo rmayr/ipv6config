@@ -1,11 +1,16 @@
 package to.doc.android.ipv6config;
 
+import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.Vector;
+
+import to.doc.android.ipv6config.LinuxIPCommandHelper.InterfaceDetail;
+import to.doc.android.ipv6config.LinuxIPCommandHelper.InetAddressWithNetmask;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -13,6 +18,8 @@ import android.util.Log;
 import android.view.View;
 
 public class IPv6Config extends Activity {
+	public final static String LOG_TAG = "IPv6Config";
+	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -22,8 +29,28 @@ public class IPv6Config extends Activity {
     }
     
     public void forceAddressReload(View v) {
-    	Log.e("IPv6Config", "clicked");
+    	Log.e(LOG_TAG, "clicked");
     	getLocalAddresses();
+    	
+    	try {
+			LinkedList<InterfaceDetail> ifaces = LinuxIPCommandHelper.getIfaceOutput();
+			for (InterfaceDetail iface : ifaces) {
+				StringBuilder addrs = new StringBuilder();
+				boolean hasPrivacySensitiveAddress = false;
+				for (InetAddressWithNetmask addr : iface.addresses) {
+					addrs.append(addr.address.toString() + " ");
+					if (addr.isIPv6GlobalMacDerivedAddress()) hasPrivacySensitiveAddress = true;
+				}
+				Log.e(LOG_TAG, "Interface " + iface.name + " with MAC " + iface.mac + 
+						" has addresses " + addrs + 
+						(hasPrivacySensitiveAddress ? " and one of the is a globally traceable IPv6 address, WARNING" : ""));
+			}
+		} catch (IOException e) {
+			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
+					LinuxIPCommandHelper.GET_INTERFACES_LINUX + " could not be executed. " +
+					"Missing access rights? " + e.toString());
+			e.printStackTrace();
+		}
     }
     
     public Vector<String> getLocalAddresses() {
@@ -34,17 +61,17 @@ public class IPv6Config extends Activity {
                	for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
                		InetAddress inetAddress = enumIpAddr.nextElement();
                		if (!inetAddress.isLoopbackAddress()) {
-               			Log.e("IPv6Config", "Found non-loopback address: " + inetAddress.getHostAddress());
+               			Log.e(LOG_TAG, "Found non-loopback address: " + inetAddress.getHostAddress());
                			addrs.add(inetAddress.getHostAddress());
                		}
                		
                		if (inetAddress instanceof Inet6Address) {
-               			Log.e("IPv6Config", "Found IPv6 address: " + inetAddress.getHostAddress());
+               			Log.e(LOG_TAG, "Found IPv6 address: " + inetAddress.getHostAddress());
                		}
                 }
             }
         } catch (SocketException ex) {
-            Log.e("IPv6Config", ex.toString());
+            Log.e(LOG_TAG, ex.toString());
         }
         return addrs;
     }
