@@ -387,7 +387,8 @@ public class Command {
 	 *
 	 * @throws IOException 
 	 * @throws InterruptedException 
-	 */	public static int executeCommand(String[] cmd, String stdin,
+	 */	
+	public static int executeCommand(String[] cmd, String stdin,
 			StringBuffer stdout, StringBuffer stderr)
 	throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
