@@ -43,7 +43,7 @@ public class IPv6Config extends Activity {
 				}
 				Log.e(LOG_TAG, "Interface " + iface.name + " with MAC " + iface.mac + 
 						" has addresses " + addrs + 
-						(hasPrivacySensitiveAddress ? " and one of the is a globally traceable IPv6 address, WARNING" : ""));
+						(hasPrivacySensitiveAddress ? " and one of them is a globally traceable IPv6 address, WARNING" : ""));
 			}
 		} catch (IOException e) {
 			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
@@ -51,6 +51,9 @@ public class IPv6Config extends Activity {
 					"Missing access rights? " + e.toString());
 			e.printStackTrace();
 		}
+		
+		// enable
+		LinuxIPCommandHelper.enableIPv6AddressPrivacy();
     }
     
     public Vector<String> getLocalAddresses() {

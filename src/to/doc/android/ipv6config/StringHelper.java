@@ -2,7 +2,6 @@ package to.doc.android.ipv6config;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Date;
 import java.util.Enumeration;
@@ -337,7 +336,7 @@ public class StringHelper {
 	 * @param rankingArr	array with rankings
 	 * @return the sorted array
 	 */
-	@SuppressWarnings("unchecked")
+	//@SuppressWarnings("unchecked")
 /*	public static String[] sort( int[] rankingArr,String[] keyArr) {
 		if (keyArr.length < 2) return keyArr;
 		String[] ret;

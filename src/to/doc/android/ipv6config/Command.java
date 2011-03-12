@@ -63,11 +63,13 @@ public class Command {
 	private static class AsyncRunHelper extends Thread {
 		String command;
 		boolean editsSystem;
+		boolean requiresSU;
 
-		public AsyncRunHelper(String command, boolean editsSystem) {
+		public AsyncRunHelper(String command, boolean editsSystem, boolean requiresSU) {
 			super();
 			this.command = command;
 			this.editsSystem = editsSystem;
+			this.requiresSU = requiresSU;
 		}
 		
 		public void run()  {		
@@ -82,7 +84,7 @@ public class Command {
 					}				
 					// execute the command
 					logger.finer("Immediately BEFORE running Command " + command);
-					executeCommand(command, editsSystem, null);
+					executeCommand(command, editsSystem, requiresSU, null);
 					logger.finer("Immediately AFTER running Command " + command);
 					synchronized (sysCommandList) {
 						logger.finest("AsyncRunHelper.run remove command now: " + command);
@@ -131,7 +133,7 @@ public class Command {
 	 * command will be queued and not be executed in parallel to another one 
 	 * with the same command string.
 	 */
-    public static void executeExtraProcessCommand(String systemCommand, boolean editsSystem) 
+    public static void executeExtraProcessCommand(String systemCommand, boolean editsSystem, boolean requiresSU) 
     		throws ExitCodeException, IOException {
 		synchronized (sysCommandList) {
 			// only add if not already running or scheduled to run
@@ -139,7 +141,7 @@ public class Command {
 				logger.info("ADDING new syscommand " + systemCommand + " and starting thread");
 				sysCommandList.put(systemCommand, new Integer(0));
 				// new to the list, starting thread for this system command
-		    	AsyncRunHelper t = new AsyncRunHelper(systemCommand, editsSystem);
+		    	AsyncRunHelper t = new AsyncRunHelper(systemCommand, editsSystem, requiresSU);
 				t.start();
 /*				ErrorLog.log("Content of systemCommandList at t.start of " + systemCommand);
 				Iterator it = sysCommandList.values().iterator();
@@ -162,14 +164,14 @@ public class Command {
      * modify the system.
      * @param combinedCommand
      */
-	public static InputStream executeContinuousCommand(String combinedCommand) throws IOException {
+	public static InputStream executeContinuousCommand(String combinedCommand, boolean requiresSU) throws IOException {
 		Process proc;
 		synchronized (sysCommandList) {
 			// only start it if it is not already running or scheduled to run
 			if (!sysCommandList.containsKey(combinedCommand)) {
 				logger.info("ADDING new continuous syscommand " + combinedCommand + " and starting process");
 				sysCommandList.put(combinedCommand, new Integer(3));
-				proc = checkAndExecute(combinedCommand, null, false, null);
+				proc = checkAndExecute(combinedCommand, null, false, requiresSU, null);
 				// started process, so now remember the Process object
 				synchronized (continuousCommands) {
 					continuousCommands.put(combinedCommand, proc);
@@ -212,7 +214,7 @@ public class Command {
 	 * can be called either with combinedCommand or splitCommand.
 	 */
 	private static Process checkAndExecute(String combinedCommand, String[] splitCommand, 
-    		boolean editsSystem, String sendToStdin) throws IOException {
+    		boolean editsSystem, boolean requiresSU, String sendToStdin) throws IOException {
        	Runtime r = Runtime.getRuntime();
        	Process proc;
        	if (combinedCommand != null)
@@ -236,9 +238,9 @@ public class Command {
     /** This helper 
      */
     private static String executeCommand(String combinedCommand, String[] splitCommand, 
-    		boolean editsSystem, String sendToStdin) 
+    		boolean editsSystem, boolean requiresSU, String sendToStdin) 
 			throws ExitCodeException, IOException {
-    	Process proc = checkAndExecute(combinedCommand, splitCommand, editsSystem, sendToStdin);
+    	Process proc = checkAndExecute(combinedCommand, splitCommand, editsSystem, requiresSU, sendToStdin);
 
 		// start reading the command output
 		BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()));
@@ -288,9 +290,9 @@ public class Command {
      * 
      * @return The (standard) output of the command after terminating.
      */
-    public static String executeCommand(String systemCommand, boolean editsSystem, String sendToStdin) 
+    public static String executeCommand(String systemCommand, boolean editsSystem, boolean requiresSU, String sendToStdin) 
     		throws ExitCodeException, IOException {
-    	return executeCommand(systemCommand, null, editsSystem, sendToStdin);
+    	return executeCommand(systemCommand, null, editsSystem, requiresSU, sendToStdin);
     }
 
     /** Executes a system command and returns its output. Optionally, some
@@ -309,9 +311,9 @@ public class Command {
      *
      * @return The (standard) output of the command after terminating.
      */
-	public static String executeCommand(String[] systemCommand, boolean editsSystem, String sendToStdin) 
+	public static String executeCommand(String[] systemCommand, boolean editsSystem, boolean requiresSU, String sendToStdin) 
 			throws ExitCodeException, IOException {
-		return executeCommand(null, systemCommand, editsSystem, sendToStdin);
+		return executeCommand(null, systemCommand, editsSystem, requiresSU, sendToStdin);
 	}
 	
 	/** Converts a string to HTML (cuts the \n and replaces with <br>). */
@@ -338,9 +340,8 @@ public class Command {
 	}
 	
 	/** Simply execute a command and return exit code */
-	public static int executeCommandEC(String systemCommand)
-	throws IOException, InterruptedException {
-		Process p = Runtime.getRuntime().exec(systemCommand);
+	public static int executeCommandEC(String systemCommand) throws IOException, InterruptedException {
+		Process p = checkAndExecute(systemCommand, null, false, false, null);
 		p.waitFor();
 		return p.exitValue();
 	}
@@ -365,11 +366,10 @@ public class Command {
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
-	public static int executeCommand(String cmd, String stdin,
-			StringBuffer stdout, StringBuffer stderr)
-	throws IOException, InterruptedException {
+	public static int executeCommand(String cmd, boolean requiresSU, String stdin, StringBuffer stdout, StringBuffer stderr)
+			throws IOException, InterruptedException {
 		String[] parts = cmd.split(" ");
-		return executeCommand(parts, stdin, stdout,stderr);
+		return executeCommand(parts, requiresSU, stdin, stdout, stderr);
 	}
 
 
@@ -388,26 +388,16 @@ public class Command {
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */	
-	public static int executeCommand(String[] cmd, String stdin,
-			StringBuffer stdout, StringBuffer stderr)
-	throws IOException, InterruptedException {
-		Runtime rt = Runtime.getRuntime();
-		Process p = rt.exec(cmd);
-		BufferedReader stdoutReader = null;
-		BufferedReader stderrReader = null;
+	 public static int executeCommand(String[] cmd, boolean requiresSU, String stdin, StringBuffer stdout, StringBuffer stderr)
+ 			throws IOException, InterruptedException {
+		 Process proc = checkAndExecute(null, cmd, false, requiresSU, stdin);
 
-		// send data to stdin
-		if (stdin != null) {
-			BufferedWriter stdinWriter = new BufferedWriter(
-				new OutputStreamWriter(p.getOutputStream()));
-			stdinWriter.write(stdin);
-			stdinWriter.close();
-		}
-	
+		 BufferedReader stdoutReader = null;
+		 BufferedReader stderrReader = null;
+
 		// read stdout if required
 		if (stdout != null) {
-			stdoutReader = new BufferedReader(
-				new InputStreamReader(p.getInputStream()));
+			stdoutReader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 			
 			String out;
 			while ((out = stdoutReader.readLine()) != null) {
@@ -417,8 +407,7 @@ public class Command {
 		
 		// read stderr if required
 		if (stderr != null) {
-			stderrReader = new BufferedReader(
-					new InputStreamReader(p.getErrorStream()));
+			stderrReader = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
 			
 			String err;
 			while ((err = stderrReader.readLine()) != null) {
@@ -428,7 +417,7 @@ public class Command {
 		
 		// wait for a clean exit, throws InterruptedException
 		int ret;
-		ret = p.waitFor();
+		ret = proc.waitFor();
 		
 		//debug output
 		StringBuffer cmdString = new StringBuffer();

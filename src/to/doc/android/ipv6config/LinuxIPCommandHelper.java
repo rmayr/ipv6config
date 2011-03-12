@@ -1,5 +1,6 @@
 package to.doc.android.ipv6config;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
@@ -16,6 +17,8 @@ public class LinuxIPCommandHelper {
 
 	/**constant for the String that identifies an ethernet interface*/
 	private static final String ETHERNET_INTERFACE = "link/ether";
+	
+	// TODO: find identifier for UMTS interface
 
 	/**constant for the String that starts the MTU option in the interface line*/
 	private final static String INTERFACE_MTU = "mtu";
@@ -30,10 +33,18 @@ public class LinuxIPCommandHelper {
 	private final static String ADDRESS_IPV6 = "inet6";
 
 	/**constant for the command to get the interfaces in linux*/
-	public static final String GET_INTERFACES_LINUX = "/sbin/ip addr";
+	public static final String GET_INTERFACES_LINUX = "/system/bin/ip addr";
 	public static final String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
 
-	private final static String ETHTOOL_COMMAND = "/usr/sbin/ethtool ";
+	public final static String ETHTOOL_COMMAND = "/usr/sbin/ethtool ";
+	
+	public final static String SH_COMMAND = "sh";
+	public final static String IPV6_CONFIG_TREE = "/proc/sys/net/ipv6/conf/";
+	public final static String ENABLE_ADDRESS_PRIVACY_PART1 = "echo 2 > " + IPV6_CONFIG_TREE;
+	public final static String ENABLE_ADDRESS_PRIVACY_PART2 = "/use_tempaddr";
+	public final static String SET_INTERFACE = "/system/bin/ip link set";
+	public final static String UP = "up";
+	public final static String DOWN = "down";
 
 	public static class InetAddressWithNetmask {
 		public InetAddress address;
@@ -54,10 +65,10 @@ public class LinuxIPCommandHelper {
 			if (addr6.isLinkLocalAddress())
 				// if it's link-local, it may be MAC-derived, but not privacy sensitive
 				return false;
-			
+
 			byte[] addrByte = addr6.getAddress();
 			// MAC-derivation adds "FFFE" in the middle of the 48 bits MAC
-			return addrByte[11] == 0xff && addrByte[12] == 0xfe;
+			return addrByte[11] == (byte) 0xff && addrByte[12] == (byte) 0xfe;
 		}
 	}
 	
@@ -109,7 +120,7 @@ public class LinuxIPCommandHelper {
 				lines =	new StringTokenizer(Command.executeCommand(
 						GET_INTERFACES_LINUX + (iface != null ? 
 						 (GET_INTERFACES_LINUX_SELECTOR + iface) : ""),
-						false, null), "\n");
+						false, false, null), "\n");
 		} catch (Exception e) {
 			if (iface == null)
 				logger.log(Level.WARNING, "Tried to parse interface stati for all interfaces, but could not", e);
@@ -205,7 +216,7 @@ public class LinuxIPCommandHelper {
 							InetAddressWithNetmask addr = new InetAddressWithNetmask();
 							if (value.contains("/")) {
 								addr.address = InetAddress.getByName(value.substring(0, value.indexOf('/')));
-								addr.subnetLength = Integer.parseInt(value.substring(value.indexOf('/')));
+								addr.subnetLength = Integer.parseInt(value.substring(value.indexOf('/')+1));
 							}
 							else {
 								addr.address = InetAddress.getByName(value);
@@ -235,7 +246,7 @@ public class LinuxIPCommandHelper {
 		LinkedList<InterfaceDetail> ifaceDetail = getIfaceOutput(device);
 		if (ifaceDetail.get(0).isUp) {
 			StringTokenizer lines;
-			lines = new StringTokenizer(Command.executeCommand(ETHTOOL_COMMAND + device, false, null), "\n");
+			lines = new StringTokenizer(Command.executeCommand(ETHTOOL_COMMAND + device, false, false, null), "\n");
 			String supportedLinkModes = "";
 			boolean supportedLinkModesDone = false;
 			while ((lines.hasMoreTokens())) {
@@ -272,5 +283,56 @@ public class LinuxIPCommandHelper {
 			//TODO: fill options
 		}
 		return options;
+	}
+	
+	/** Enable address privacy for all interfaces. */
+	public static boolean enableIPv6AddressPrivacy() {
+		boolean ret = true;
+		LinkedList<String> allIfaces = new LinkedList<String>();
+		
+		// include the special "default" and "all" trees
+		allIfaces.add("all");
+		allIfaces.add("default");
+		
+		// for now, use static interface names
+		// TODO: take all interfaces with IPv6 addresses as well
+		allIfaces.add("eth0");
+		allIfaces.add("rmnet0");
+		allIfaces.add("rmnet1");
+		allIfaces.add("rmnet2");
+		allIfaces.add("ip6tnl0");
+		
+		for (String iface: allIfaces) {
+			File configDir = new File(IPV6_CONFIG_TREE + iface); 
+			// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
+			if (configDir.isDirectory())
+				if (!enableIPv6AddressPrivacy(iface))
+					ret = false;
+		}
+		
+		return ret;
+	}
+	
+	public static boolean enableIPv6AddressPrivacy(String iface) {
+		
+		try {
+			if (Command.executeCommand(SH_COMMAND, true, ENABLE_ADDRESS_PRIVACY_PART1 + iface + ENABLE_ADDRESS_PRIVACY_PART2, null, null) == 0) {
+				Command.executeCommand(SET_INTERFACE + " " + iface + " " + DOWN, true, true, null);
+				Command.executeCommand(SET_INTERFACE + " " + iface + " " + UP, true, true, null);
+				logger.finer("Enabled address privacy on interface " + iface);
+				return true;
+			}
+			else {
+				return false;
+			}
+		} catch (ExitCodeException e) {
+			logger.warning("Unable to set interface " + iface + " up or down, temporary address will not be activated immediately: " + e);
+			return false;
+		} catch (IOException e) {
+			logger.severe("Unable to execute system command, address privacy may not be enabled (access privileges missing?) " + e);
+			return false;
+		} catch (InterruptedException e) {
+			return false;
+		}
 	}
 }
