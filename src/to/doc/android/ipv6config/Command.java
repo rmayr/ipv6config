@@ -63,11 +63,13 @@ public class Command {
 	private static class AsyncRunHelper extends Thread {
 		String command;
 		boolean editsSystem;
+		boolean requiresSU;
 
-		public AsyncRunHelper(String command, boolean editsSystem) {
+		public AsyncRunHelper(String command, boolean editsSystem, boolean requiresSU) {
 			super();
 			this.command = command;
 			this.editsSystem = editsSystem;
+			this.requiresSU = requiresSU;
 		}
 		
 		public void run()  {		
@@ -82,7 +84,7 @@ public class Command {
 					}				
 					// execute the command
 					logger.finer("Immediately BEFORE running Command " + command);
-					executeCommand(command, editsSystem, null);
+					executeCommand(command, editsSystem, null, requiresSU);
 					logger.finer("Immediately AFTER running Command " + command);
 					synchronized (sysCommandList) {
 						logger.finest("AsyncRunHelper.run remove command now: " + command);
@@ -131,7 +133,7 @@ public class Command {
 	 * command will be queued and not be executed in parallel to another one 
 	 * with the same command string.
 	 */
-    public static void executeExtraProcessCommand(String systemCommand, boolean editsSystem) 
+    public static void executeExtraProcessCommand(String systemCommand, boolean editsSystem, boolean requiresSU) 
     		throws ExitCodeException, IOException {
 		synchronized (sysCommandList) {
 			// only add if not already running or scheduled to run
@@ -139,7 +141,7 @@ public class Command {
 				logger.info("ADDING new syscommand " + systemCommand + " and starting thread");
 				sysCommandList.put(systemCommand, new Integer(0));
 				// new to the list, starting thread for this system command
-		    	AsyncRunHelper t = new AsyncRunHelper(systemCommand, editsSystem);
+		    	AsyncRunHelper t = new AsyncRunHelper(systemCommand, editsSystem, requiresSU);
 				t.start();
 /*				ErrorLog.log("Content of systemCommandList at t.start of " + systemCommand);
 				Iterator it = sysCommandList.values().iterator();
@@ -288,7 +290,7 @@ public class Command {
      * 
      * @return The (standard) output of the command after terminating.
      */
-    public static String executeCommand(String systemCommand, boolean editsSystem, String sendToStdin) 
+    public static String executeCommand(String systemCommand, boolean editsSystem, String sendToStdin, boolean requiresSU) 
     		throws ExitCodeException, IOException {
     	return executeCommand(systemCommand, null, editsSystem, sendToStdin);
     }
@@ -309,7 +311,7 @@ public class Command {
      *
      * @return The (standard) output of the command after terminating.
      */
-	public static String executeCommand(String[] systemCommand, boolean editsSystem, String sendToStdin) 
+	public static String executeCommand(String[] systemCommand, boolean editsSystem, String sendToStdin, boolean requiresSU) 
 			throws ExitCodeException, IOException {
 		return executeCommand(null, systemCommand, editsSystem, sendToStdin);
 	}
@@ -365,11 +367,11 @@ public class Command {
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
-	public static int executeCommand(String cmd, String stdin,
+	public static int executeCommand(String cmd, boolean requiresSU, String stdin,
 			StringBuffer stdout, StringBuffer stderr)
 	throws IOException, InterruptedException {
 		String[] parts = cmd.split(" ");
-		return executeCommand(parts, stdin, stdout,stderr);
+		return executeCommand(parts, requiresSU, stdin, stdout, stderr);
 	}
 
 
@@ -387,7 +389,7 @@ public class Command {
 	 *
 	 * @throws IOException 
 	 * @throws InterruptedException 
-	 */	public static int executeCommand(String[] cmd, String stdin,
+	 */	public static int executeCommand(String[] cmd, boolean requiresSU, String stdin,
 			StringBuffer stdout, StringBuffer stderr)
 	throws IOException, InterruptedException {
 		Runtime rt = Runtime.getRuntime();
