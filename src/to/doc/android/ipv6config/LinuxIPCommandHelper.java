@@ -75,7 +75,7 @@ public class LinuxIPCommandHelper {
 	/** Option to set network interface down. */
 	private final static String DOWN = "down";
 	/** Delay between setting an interface down and up to force its IPv6 address to be reset (in milliseconds). */
-	public final static int INTERFACE_DOWN_UP_DELAY = 200;
+	public final static int INTERFACE_DOWN_UP_DELAY = 500;
 
 	/** This class represents an (IPv4 or IPv6) address with an optional network mask. */
 	public static class InetAddressWithNetmask {

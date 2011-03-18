@@ -1,0 +1,68 @@
+This applications allows to set some options for the IPv6 stack that is part
+of the main Linux kernel and also used on Android devices. Most importantly,
+it allows to automatically enable the "Privacy Extensions for Stateless 
+Address Autoconfiguration in IPv6" as specified in IETF RFC4941 and implemented
+by the standard Linux kernel.
+
+Why address privacy?
+--------------------
+With IPv6 as the next Internet Protocol, the default behavior on current
+Android systems is to derive IPv6 addresses from a so-called prefix that is
+automatically announced (broadcast) in a network that has been IPv6-enabled and
+the so-called suffix that includes the MAC address of the network card.
+
+Including the MAC address in this automatically generated IPv6 addressing 
+scheme means that, independently of the network a specific device connects to,
+the last 64 Bits of its IPv6 address will always remain the same. Even when 
+moving between different networks, each device using this scheme is therefore
+uniquely identifieable by its suffix. This allows to easily track devices as 
+they connect to different networks and whenever they use any network resources.
+
+What does address privacy do?
+-----------------------------
+When enabled, the RFC4941 extensions cause a device to generate dynamic IPv6
+address with random suffixes and change these addresses randomly. This prevents
+tracking a device, as it is unlikely that it will use the same address again
+(and if so, then only by chance).
+
+What does this application do?
+------------------------------
+This android application can be set to start at device bootup and automatically
+set the appropriate Linux kernel configuration option on all known network 
+interfaces (WiFi and GPRS/UMTS, mostly) so that they will use randomly 
+generated addresses instead of those derived from the device MAC address.
+
+What are the requirements?
+--------------------------
+This is only possible on rooted Android devices, because the kernel 
+configuration options are only writable by the root user.
+
+Tested devices and rooting applications/methods:
+------------------------------------------------
+This application has been tested successfully on:
+
+* Google Nexus S
+* HTC Desire (unrevoked)
+* HTC Desire HD (Visionary+ r14)
+* Motorola Milestone
+* Samsung Galaxy Tab GT-P1000 (z4root)
+
+Isn't rooting unsafe? What does this application really do?
+-----------------------------------------------------------
+Don't just trust me. Please check the source code. It is online at
+http://gitorious.org/android-ipv6config/android-ipv6config.git
+
+Why should I pay for this application if it is open source?
+-----------------------------------------------------------
+You don't have to. There are two versions available in the Android Market that
+I compile: one that can be installed for free and one version that will donate
+a small amount. Both versions are completely the same, and the free version 
+is not restricted in any way. In fact, anybody can take the source code and
+compile and install the APK and even redistribute it as long as they conform
+to the terms of the GNU GPL version 2 or 3.
+The donate version is in the market if you would like to donate to the further
+development of this and other applications. Luckily, I do not have to make a 
+living with my applications, and therefore release all of them as open source.
+However, I do have infrastructure costs for my own server, which I use as a 
+development resource. If you wish to contribute towards these development 
+costs, then please buy the donate version. If not, then just take the free one.
