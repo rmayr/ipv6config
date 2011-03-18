@@ -1,14 +1,5 @@
 package to.doc.android.ipv6config;
 
-/**
- * Title:
- * Description:
- * Copyright:    Copyright (c) 2001
- * Company:
- * @author
- * @version 1.0
- */
-
  /**
   * this exception can handle two messages
   * one message will be translated (message is key in languagefile)

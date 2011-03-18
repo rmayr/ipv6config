@@ -1,13 +1,8 @@
 /*****************************************************************************
  *  Project: Gibraltar-Webinterface
  *  Description: webinterface for the firewall gibraltar
- *  Filename: $RCSfile$
  *  Author: Andreas Woeckl
  *  Copyright: Andreas Woeckl 2001
- *  Project version tag: $Name$
- *  File version: $Revision: 7281 $
- *  Last changed at: $Date: 2009-09-22 14:21:01 +0200 (Die, 22. Sep 2009) $
- *  Last changed by: $Author: rene $
  *****************************************************************************/
 
 package to.doc.android.ipv6config;

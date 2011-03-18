@@ -1,3 +1,14 @@
+/*****************************************************************************
+ *  Project: Android IPv6Config
+ *  Description: Android application to change IPv6 kernel configuration
+ *  Author: Rene Mayrhofer
+ *  Copyright: Rene Mayrhofer, 2011-2011
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 
+ * as published by the Free Software Foundation.
+ *****************************************************************************/
+
 package to.doc.android.ipv6config;
 
 import java.io.File;
@@ -11,41 +22,62 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/** This is a helper class for interacting with modern Linux network interface
+ * settings.
+ * 
+ * @author Rene Mayrhofer <rene@mayrhofer.eu.org>
+ * @version 1.3
+ */
 public class LinuxIPCommandHelper {
 	/** Our logger for this class. */
 	private final static Logger logger = java.util.logging.Logger.getLogger(LinuxIPCommandHelper.class.getName());
 
-	/**constant for the String that identifies an ethernet interface*/
-	private static final String ETHERNET_INTERFACE = "link/ether";
+	/** Identifies an Ethernet interface and, funnily enough, also the GPRS/UMTS interfaces. */
+	private final static String ETHERNET_INTERFACE = "link/ether";
 	
-	// TODO: find identifier for UMTS interface
-
-	/**constant for the String that starts the MTU option in the interface line*/
+	/** Identifier for starting the MTU option in the interface line. */
 	private final static String INTERFACE_MTU = "mtu";
 
-	/**constant for the String that starts the state option in the interface line*/
+	/** Identifier that starts the state option in the interface line. */
 	//private final static String INTERFACE_STATE = "state";
 
-	/**constant for the String that identifies an IPv4 address*/
+	/** Identifies an IPv4 address. */
 	private final static String ADDRESS_IPV4 = "inet";
 
-	/**constant for the String that identifies an IPv6 address*/
+	/** Identifies an IPv6 address. */
 	private final static String ADDRESS_IPV6 = "inet6";
 
-	/**constant for the command to get the interfaces in linux*/
-	public static final String GET_INTERFACES_LINUX = "/system/bin/ip addr";
-	public static final String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
+	/** Command to get and set network interface addresses and options under modern Linux systems. */
+	public final static String GET_INTERFACES_LINUX = "/system/bin/ip addr";
+	/** Option to the GET_INTERFACES_LINUX command to select a specific interface. */
+	public final static String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
 
+	/** Command to get and set Ethernet interface details under Linux systems. */
 	public final static String ETHTOOL_COMMAND = "/usr/sbin/ethtool ";
 	
+	/** Simply the shell command (and if necessary path) to execute a standard POSIX shell. */
 	public final static String SH_COMMAND = "sh";
+	/** Path for the IPv6 configuration kernel options. */
 	public final static String IPV6_CONFIG_TREE = "/proc/sys/net/ipv6/conf/";
-	public final static String ENABLE_ADDRESS_PRIVACY_PART1 = "echo 2 > " + IPV6_CONFIG_TREE;
-	public final static String ENABLE_ADDRESS_PRIVACY_PART2 = "/use_tempaddr";
-	public final static String SET_INTERFACE = "/system/bin/ip link set";
-	public final static String UP = "up";
-	public final static String DOWN = "down";
+	/** First part of the command to enable IPv6 address privacy (before interface name). */
+	private final static String ENABLE_ADDRESS_PRIVACY_PART1 = "echo 2 > " + IPV6_CONFIG_TREE;
+	/** Second part of the command to enable IPv6 address privacy (after interface name). */
+	private final static String ENABLE_ADDRESS_PRIVACY_PART2 = "/use_tempaddr";
+	/** Interface "name" to denote all network interface for kernel configuration options. */ 
+	private final static String CONF_INTERFACES_ALL = "all";
+	/** Interface "name" to denote the default kernel configuration options for new (hotplug enabled) network interfaces. */ 
+	private final static String CONF_INTERFACES_DEFAULT = "default";
 
+	/** Command to get and set network interface status under modern Linux systems (up/down mostly). */
+	public final static String SET_INTERFACE = "/system/bin/ip link set";
+	/** Option to set network interface up. */
+	private final static String UP = "up";
+	/** Option to set network interface down. */
+	private final static String DOWN = "down";
+	/** Delay between setting an interface down and up to force its IPv6 address to be reset (in milliseconds). */
+	public final static int INTERFACE_DOWN_UP_DELAY = 200;
+
+	/** This class represents an (IPv4 or IPv6) address with an optional network mask. */
 	public static class InetAddressWithNetmask {
 		public InetAddress address;
 		public int subnetLength;
@@ -56,6 +88,10 @@ public class LinuxIPCommandHelper {
 			this.subnetLength = maskLength;
 		}
 		
+		/** Returns true if this address is an IPv6 address, is globally routeable (i.e.
+		 * it is not a link- or site-local address), and has been derived from a MAC
+		 * address using the EUI scheme.
+		 */
 		public boolean isIPv6GlobalMacDerivedAddress() {
 			if (address == null || ! (address instanceof Inet6Address))
 				// only check valid IPv6 addresses
@@ -72,6 +108,10 @@ public class LinuxIPCommandHelper {
 		}
 	}
 	
+	/** This class represents a network interface with its most important 
+	 * details: addresses and network masks, up/down status, MAC address,
+	 * and MTU. 
+	 */
 	public static class InterfaceDetail {
 		public String name;
 		public String mac;
@@ -106,8 +146,8 @@ public class LinuxIPCommandHelper {
 	 * RM: 15.04.2009 Updated from ip link to ip addr and actually implemented....
 	 * @param iface If set, then only fetch information for this interface name.
 	 *              When an invalid interface name is given, output will be
-	 *              empty. If set to null, return all interfaces.
-	 * @return the output of the ip addr command to iterate and initialize the interfaces
+	 *              empty. If set to null, returns all interfaces.
+	 * @return the output of the ip addr command appropriately parsed for the options in InterfaceDetail.
 	 * @throws IOException 
 	 */
 	public static LinkedList<InterfaceDetail> getIfaceOutput(String iface) throws IOException {
@@ -117,7 +157,7 @@ public class LinuxIPCommandHelper {
 		LinkedList<InterfaceDetail> list = new LinkedList<InterfaceDetail>();
 		
 		try {
-				lines =	new StringTokenizer(Command.executeCommand(
+			lines =	new StringTokenizer(Command.executeCommand(
 						GET_INTERFACES_LINUX + (iface != null ? 
 						 (GET_INTERFACES_LINUX_SELECTOR + iface) : ""),
 						false, false, null), "\n");
@@ -285,14 +325,19 @@ public class LinuxIPCommandHelper {
 		return options;
 	}
 	
-	/** Enable address privacy for all interfaces. */
-	public static boolean enableIPv6AddressPrivacy() {
+	/** Enable address privacy for all interfaces and potentially try to force reload. 
+	 * @param forceAddressReload If set to true, each interface will also be 
+	 *        reset by calling forceAddressReload.
+	 * @return false if address privacy could not be set on any of the interfaces,
+	 *         true if all of them could be set.
+	 */
+	public static boolean enableIPv6AddressPrivacy(boolean forceAddressReload) {
 		boolean ret = true;
 		LinkedList<String> allIfaces = new LinkedList<String>();
 		
 		// include the special "default" and "all" trees
-		allIfaces.add("all");
-		allIfaces.add("default");
+		allIfaces.add(CONF_INTERFACES_ALL);
+		allIfaces.add(CONF_INTERFACES_DEFAULT);
 		
 		// for now, use static interface names
 		// TODO: take all interfaces with IPv6 addresses as well
@@ -306,30 +351,60 @@ public class LinuxIPCommandHelper {
 			File configDir = new File(IPV6_CONFIG_TREE + iface); 
 			// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
 			if (configDir.isDirectory())
-				if (!enableIPv6AddressPrivacy(iface))
+				if (enableIPv6AddressPrivacy(iface)) {
+						if (forceAddressReload && !iface.equals(CONF_INTERFACES_ALL) && !iface.equals(CONF_INTERFACES_DEFAULT))
+							enableIPv6AddressPrivacy(iface);
+				}
+				else
 					ret = false;
 		}
 		
 		return ret;
 	}
 	
+	/** Enable address privacy for a specific interface. This sets the 
+	 * "use_tempaddr" kernel option to "2" for the given interface.
+	 * 
+	 * @return true if the kernel option could be set, false otherwise. 
+	 */
 	public static boolean enableIPv6AddressPrivacy(String iface) {
-		
 		try {
 			if (Command.executeCommand(SH_COMMAND, true, ENABLE_ADDRESS_PRIVACY_PART1 + iface + ENABLE_ADDRESS_PRIVACY_PART2, null, null) == 0) {
-				Command.executeCommand(SET_INTERFACE + " " + iface + " " + DOWN, true, true, null);
-				Command.executeCommand(SET_INTERFACE + " " + iface + " " + UP, true, true, null);
 				logger.finer("Enabled address privacy on interface " + iface);
 				return true;
 			}
 			else {
 				return false;
 			}
-		} catch (ExitCodeException e) {
-			logger.warning("Unable to set interface " + iface + " up or down, temporary address will not be activated immediately: " + e);
-			return false;
 		} catch (IOException e) {
 			logger.severe("Unable to execute system command, address privacy may not be enabled (access privileges missing?) " + e);
+			return false;
+		} catch (InterruptedException e) {
+			return false;
+		}
+	}
+	
+	/** Tries to force the interface to reset its addresses by setting it down and then up. */
+	public static boolean forceAddressReload(String iface) {
+		try {
+			if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + DOWN, null, null) == 0) {
+				// wait just a little for the interface to properly go down
+				Thread.sleep(INTERFACE_DOWN_UP_DELAY);
+				if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + UP, null, null) == 0) {
+					logger.finer("Reset interface " + iface + " to force address reload");
+					return true;
+				}
+				else {
+					logger.warning("Set interface " + iface + " down but was unable to set it up again");
+					return false;
+				}
+			}
+			else {
+				logger.warning("Unable to set interface " + iface + " down");
+				return false;
+			}
+		} catch (IOException e) {
+			logger.severe("Unable to execute system command, new addresses may not have been set (access privileges missing?) " + e);
 			return false;
 		} catch (InterruptedException e) {
 			return false;

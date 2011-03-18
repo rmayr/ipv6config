@@ -1,13 +1,8 @@
 /*****************************************************************************
  *  Project: Gibraltar-Webinterface
  *  Description: webinterface for the firewall gibraltar
- *  Filename: $RCSfile$
  *  Author: Rene Mayrhofer
- *  Copyright: Rene Mayrhofer, 2001-2009
- *  Project version tag: $Name$
- *  File version: $Revision: 7283 $
- *  Last changed at: $Date: 2009-09-22 14:38:14 +0200 (Die, 22. Sep 2009) $
- *  Last changed by: $Author: rene $
+ *  Copyright: Rene Mayrhofer, 2001-2011
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 
@@ -217,10 +212,22 @@ public class Command {
     		boolean editsSystem, boolean requiresSU, String sendToStdin) throws IOException {
        	Runtime r = Runtime.getRuntime();
        	Process proc;
-       	if (combinedCommand != null)
+
+       	if (combinedCommand != null) {
+       		if (requiresSU)
+       			combinedCommand = "su " + combinedCommand;
        		proc = r.exec(combinedCommand);
-       	else
+       	}
+       	else {
+       		if (requiresSU) {
+       			String[] tmp = new String[splitCommand.length+1];
+       			for (int i=0; i<splitCommand.length; i++)
+       				tmp[i+1] = splitCommand[i];
+       			splitCommand[0] = "su";
+       		}
+       		
        		proc = r.exec(splitCommand);
+       	}
 
 		// if outputString is not null -> write!
 		if (sendToStdin != null) {			
