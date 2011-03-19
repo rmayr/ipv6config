@@ -75,7 +75,7 @@ public class LinuxIPCommandHelper {
 	/** Option to set network interface down. */
 	private final static String DOWN = "down";
 	/** Delay between setting an interface down and up to force its IPv6 address to be reset (in milliseconds). */
-	public final static int INTERFACE_DOWN_UP_DELAY = 500;
+	public final static int INTERFACE_DOWN_UP_DELAY = 100;
 
 	/** This class represents an (IPv4 or IPv6) address with an optional network mask. */
 	public static class InetAddressWithNetmask {
@@ -353,7 +353,7 @@ public class LinuxIPCommandHelper {
 			if (configDir.isDirectory())
 				if (enableIPv6AddressPrivacy(iface)) {
 						if (forceAddressReload && !iface.equals(CONF_INTERFACES_ALL) && !iface.equals(CONF_INTERFACES_DEFAULT))
-							enableIPv6AddressPrivacy(iface);
+							forceAddressReload(iface);
 				}
 				else
 					ret = false;
