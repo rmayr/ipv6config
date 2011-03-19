@@ -24,19 +24,50 @@ import to.doc.android.ipv6config.LinuxIPCommandHelper.InterfaceDetail;
 import to.doc.android.ipv6config.LinuxIPCommandHelper.InetAddressWithNetmask;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.CheckBox;
 
 public class IPv6Config extends Activity {
 	public final static String LOG_TAG = "IPv6Config";
+	
+	private CheckBox autoStart;
+	private CheckBox enablePrivacy;
+
+	private SharedPreferences prefsPrivate;
+
+	protected final static String PREFERENCES_STORE = "IPv6Config";
+	protected final static String PREFERENCE_AUTOSTART = "autostart";
+	protected final static String PREFERENCE_ENABLE_PRIVACY = "enablePrivacyExtensions";
 	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+    
+        prefsPrivate = getSharedPreferences(PREFERENCES_STORE, Context.MODE_PRIVATE);
+        
+        autoStart = (CheckBox) findViewById(R.id.checkboxAutostart);
+        autoStart.setChecked(prefsPrivate.getBoolean(PREFERENCE_AUTOSTART, false));
+        enablePrivacy = (CheckBox) findViewById(R.id.checkboxEnablePrivacy);
+        enablePrivacy.setChecked(prefsPrivate.getBoolean(PREFERENCE_ENABLE_PRIVACY, false));
+        
         getLocalAddresses();
+    }
+    
+    @Override
+    public void onPause() {
+    	Editor prefsPrivateEditor = prefsPrivate.edit();
+		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
+		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+		prefsPrivateEditor.commit();
+		
+		super.onPause();
     }
     
     public void forceAddressReload(View v) {
@@ -67,6 +98,7 @@ public class IPv6Config extends Activity {
 		LinuxIPCommandHelper.enableIPv6AddressPrivacy(true);
     }
     
+    /** This method doesn't work on Android pre-Honeycomb (3.0) systems for getting IPv6 addresses. */ 
     public Vector<String> getLocalAddresses() {
     	Vector<String> addrs = new Vector<String>();
         try {
