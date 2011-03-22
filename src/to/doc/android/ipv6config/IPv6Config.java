@@ -25,19 +25,24 @@ import to.doc.android.ipv6config.LinuxIPCommandHelper.InetAddressWithNetmask;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.TextView;
+import android.widget.TextView.BufferType;
 
 public class IPv6Config extends Activity {
 	public final static String LOG_TAG = "IPv6Config";
 	
 	private CheckBox autoStart;
 	private CheckBox enablePrivacy;
-
+	private TextView localAddresses;
+	private TextView globalAddress;
+	
 	private SharedPreferences prefsPrivate;
 
 	protected final static String PREFERENCES_STORE = "IPv6Config";
@@ -56,23 +61,12 @@ public class IPv6Config extends Activity {
         autoStart.setChecked(prefsPrivate.getBoolean(PREFERENCE_AUTOSTART, false));
         enablePrivacy = (CheckBox) findViewById(R.id.checkboxEnablePrivacy);
         enablePrivacy.setChecked(prefsPrivate.getBoolean(PREFERENCE_ENABLE_PRIVACY, false));
+
+        localAddresses = (TextView) findViewById(R.id.viewLocalAddresses);
+        globalAddress = (TextView) findViewById(R.id.viewGlobalAddress);
         
-        getLocalAddresses();
-    }
-    
-    @Override
-    public void onPause() {
-    	Editor prefsPrivateEditor = prefsPrivate.edit();
-		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
-		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
-		prefsPrivateEditor.commit();
-		
-		super.onPause();
-    }
-    
-    public void forceAddressReload(View v) {
-    	Log.e(LOG_TAG, "clicked");
-    	getLocalAddresses();
+        // doesn't work on Android < 3.0
+    	//getLocalAddresses();
     	
     	try {
 			LinkedList<InterfaceDetail> ifaces = LinuxIPCommandHelper.getIfaceOutput();
@@ -86,6 +80,8 @@ public class IPv6Config extends Activity {
 				Log.e(LOG_TAG, "Interface " + iface.name + " with MAC " + iface.mac + 
 						" has addresses " + addrs + 
 						(hasPrivacySensitiveAddress ? " and one of them is a globally traceable IPv6 address, WARNING" : ""));
+				
+				localAddresses.setText(addrs, BufferType.SPANNABLE);
 			}
 		} catch (IOException e) {
 			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
@@ -93,9 +89,30 @@ public class IPv6Config extends Activity {
 					"Missing access rights? " + e.toString());
 			e.printStackTrace();
 		}
+    }
+    
+    @Override
+    public void onPause() {
+    	Editor prefsPrivateEditor = prefsPrivate.edit();
+		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
+		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+		prefsPrivateEditor.commit();
 		
-		// enable
-		LinuxIPCommandHelper.enableIPv6AddressPrivacy(true);
+		super.onPause();
+    }
+
+    public void determineAddress(View v) {
+    	Log.d(LOG_TAG, "determineAddress clicked");
+
+    }
+
+    public void forceAddressReload(View v) {
+    	Log.d(LOG_TAG, "forceAddressReload clicked");
+	
+		//Intent i = new Intent(getApplicationContext(), StartAtBootService.class);
+    	Intent i = new Intent();
+		i.setAction("to.doc.android.ipv6config.StartAtBootService");
+		getApplicationContext().startService(i);
     }
     
     /** This method doesn't work on Android pre-Honeycomb (3.0) systems for getting IPv6 addresses. */ 

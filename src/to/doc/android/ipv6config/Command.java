@@ -250,7 +250,7 @@ public class Command {
     	Process proc = checkAndExecute(combinedCommand, splitCommand, editsSystem, requiresSU, sendToStdin);
 
 		// start reading the command output
-		BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()), 4192);
 		StringBuffer output = new StringBuffer();
 		String temp;
 		while ((temp = in.readLine()) != null) {
@@ -404,7 +404,7 @@ public class Command {
 
 		// read stdout if required
 		if (stdout != null) {
-			stdoutReader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+			stdoutReader = new BufferedReader(new InputStreamReader(proc.getInputStream()), 4192);
 			
 			String out;
 			while ((out = stdoutReader.readLine()) != null) {
@@ -414,7 +414,7 @@ public class Command {
 		
 		// read stderr if required
 		if (stderr != null) {
-			stderrReader = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+			stderrReader = new BufferedReader(new InputStreamReader(proc.getErrorStream()), 4192);
 			
 			String err;
 			while ((err = stderrReader.readLine()) != null) {
