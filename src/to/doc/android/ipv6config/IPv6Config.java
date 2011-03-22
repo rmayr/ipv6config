@@ -98,6 +98,16 @@ public class IPv6Config extends Activity {
 		LinuxIPCommandHelper.enableIPv6AddressPrivacy(true);
     }
     
+    /** This method tries to retrieve the IPv6 address visible to servers by 
+     * querying https://doc.to/getip/.
+     * @return the IPv6 address of this host that is used to connect to other
+     *         hosts or null if IPv6 connections to https://doc.to are not
+     *         possible.
+     */
+    public String getOutboundIPv6Address() {
+    	
+    }
+    
     /** This method doesn't work on Android pre-Honeycomb (3.0) systems for getting IPv6 addresses. */ 
     public Vector<String> getLocalAddresses() {
     	Vector<String> addrs = new Vector<String>();
