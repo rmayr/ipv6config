@@ -2,8 +2,11 @@
 <resources>
     <string name="hello">Hello World, IPv6Config!</string>
     <string name="app_name">IPv6Config</string>
-    <string name="ipv6Address">IPv6 addresses:</string>
+    <string name="ipv6Address">Local IPv6 addresses assigned to network interfaces:</string>
     <string name="autostart">Apply settings on device bootup</string>
     <string name="ipv6privacy">Enable IPv6 address privacy</string>
-    <string name="forceAddressReload">Force new IPv6 address</string>
+    <string name="forceAddressReload">Force new IPv6 address assignment</string>
+    <string name="determineAddress">Determine global IPv6 address as visible to Internet services</string>
+    <string name="ipv6GlobalAddress">Globally visible IPv6 address used to connect to services</string>
+    <string name="notSet">not yet determined</string>
 </resources>

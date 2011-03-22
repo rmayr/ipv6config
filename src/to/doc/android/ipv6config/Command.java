@@ -34,6 +34,9 @@ import java.util.logging.Logger;
 public class Command {
 	/** Our logger for this class. */
 	private final static Logger logger = Logger.getLogger(Command.class.getName());
+	
+	/** Buffer size used for BufferReader and BufferWriter. */
+	private final static int IOBufferSize = 4192;
 
 	/** The following states of background processes are possible:
 	 * - key is not in map: command is not running and is not scheduled to run
@@ -231,7 +234,7 @@ public class Command {
 
 		// if outputString is not null -> write!
 		if (sendToStdin != null) {			
-			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()));
+			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(proc.getOutputStream()), IOBufferSize);
 			out.write(sendToStdin);
 			out.close();
 		}
@@ -250,7 +253,7 @@ public class Command {
     	Process proc = checkAndExecute(combinedCommand, splitCommand, editsSystem, requiresSU, sendToStdin);
 
 		// start reading the command output
-		BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		BufferedReader in = new BufferedReader(new InputStreamReader(proc.getInputStream()), IOBufferSize);
 		StringBuffer output = new StringBuffer();
 		String temp;
 		while ((temp = in.readLine()) != null) {
@@ -404,7 +407,7 @@ public class Command {
 
 		// read stdout if required
 		if (stdout != null) {
-			stdoutReader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+			stdoutReader = new BufferedReader(new InputStreamReader(proc.getInputStream()), IOBufferSize);
 			
 			String out;
 			while ((out = stdoutReader.readLine()) != null) {
@@ -414,7 +417,7 @@ public class Command {
 		
 		// read stderr if required
 		if (stderr != null) {
-			stderrReader = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+			stderrReader = new BufferedReader(new InputStreamReader(proc.getErrorStream()), IOBufferSize);
 			
 			String err;
 			while ((err = stderrReader.readLine()) != null) {
