@@ -10,13 +10,10 @@ public class StartAtBootServiceReceiver extends BroadcastReceiver
 	public void onReceive(Context context, Intent intent) 
 	{
 		if (intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
-			Intent i = new Intent(context, StartAtBootService.class);
-			//i.setAction("to.doc.android.StartAtBootService");
-			context.startService(i);
-
-		
-			i = new Intent(context, IPv6Config.class);
-			context.startService(i);
+			/* Do the major processing in a background service that will 
+			 * terminate after it's done so as not to block the main thread.
+			 */
+			context.startService( new Intent(context, StartAtBootService.class));
 		}
 	}
 }

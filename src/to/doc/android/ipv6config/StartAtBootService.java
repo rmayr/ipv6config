@@ -31,15 +31,18 @@ public class StartAtBootService extends Service
 	        Log.w(IPv6Config.LOG_TAG, "Set to autostart: " + autoStart);
 	        Log.w(IPv6Config.LOG_TAG, "Set to enable privacy: " + enablePrivacy);
 
-		    Toast.makeText(getApplicationContext(), 
-	        		"IPv6Config trying to enable address privacy: " + (autoStart && enablePrivacy), 
-	        		Toast.LENGTH_LONG).show();
-
 	        if (autoStart && enablePrivacy) {
 	        	Log.w(IPv6Config.LOG_TAG, "Now enabling address privacy on all currently known interfaces, this might take a few seconds...");
 	    		// TODO: decide how to handle force address reload when started during bootup
 	        	// probably keep it to be sure of enabling address privacy
-	    		LinuxIPCommandHelper.enableIPv6AddressPrivacy(true);
+	    		if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(true))
+	    		    Toast.makeText(getApplicationContext(), 
+	    	        		"IPv6Config successfully enabled address privacy", 
+	    	        		Toast.LENGTH_LONG).show();
+	    		else
+	    		    Toast.makeText(getApplicationContext(), 
+	    	        		"IPv6Config could not enable address privacy on all interfaces, your privacy is NOT guaranteed at this time!", 
+	    	        		Toast.LENGTH_LONG).show();
 	        }
 
 	    	// we only need to apply the settings once, they will remain in the kernel space

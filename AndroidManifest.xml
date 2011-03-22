@@ -16,13 +16,15 @@
             </intent-filter>
         </activity>
 
-		<receiver android:name="StartAtBootServiceReceiver">
+		<receiver android:name=".StartAtBootServiceReceiver">
 			<intent-filter>
 				<action android:name="android.intent.action.BOOT_COMPLETED" />
 				<category android:name="android.intent.category.HOME" />
 			</intent-filter>
 		</receiver>
 
+		<service android:name=".StartAtBootService">
+		</service>
     </application>
     <uses-sdk android:minSdkVersion="3" />
 </manifest> 

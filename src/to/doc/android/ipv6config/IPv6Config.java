@@ -60,11 +60,41 @@ public class IPv6Config extends Activity {
         autoStart = (CheckBox) findViewById(R.id.checkboxAutostart);
         autoStart.setChecked(prefsPrivate.getBoolean(PREFERENCE_AUTOSTART, false));
         enablePrivacy = (CheckBox) findViewById(R.id.checkboxEnablePrivacy);
-        enablePrivacy.setChecked(prefsPrivate.getBoolean(PREFERENCE_ENABLE_PRIVACY, false));
+        enablePrivacy.setChecked(prefsPrivate.getBoolean(PREFERENCE_ENABLE_PRIVACY, true));
 
         localAddresses = (TextView) findViewById(R.id.viewLocalAddresses);
         globalAddress = (TextView) findViewById(R.id.viewGlobalAddress);
-        
+
+        displayLocalAddresses();
+    }
+    
+    @Override
+    public void onPause() {
+    	Editor prefsPrivateEditor = prefsPrivate.edit();
+		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
+		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+		prefsPrivateEditor.commit();
+		
+		super.onPause();
+    }
+
+    public void determineAddress(View v) {
+    	Log.d(LOG_TAG, "determineAddress clicked");
+
+    	displayLocalAddresses();
+    }
+
+    public void forceAddressReload(View v) {
+    	Log.d(LOG_TAG, "forceAddressReload clicked");
+	
+		/* Do the major processing in a background service that will 
+		 * terminate after it's done so as not to block the main thread.
+		 */
+    	if (enablePrivacy.isChecked())
+    		getApplicationContext().startService( new Intent(getApplicationContext(), StartAtBootService.class));
+    }
+    
+    public void displayLocalAddresses() {
         // doesn't work on Android < 3.0
     	//getLocalAddresses();
     	
@@ -89,30 +119,6 @@ public class IPv6Config extends Activity {
 					"Missing access rights? " + e.toString());
 			e.printStackTrace();
 		}
-    }
-    
-    @Override
-    public void onPause() {
-    	Editor prefsPrivateEditor = prefsPrivate.edit();
-		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
-		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
-		prefsPrivateEditor.commit();
-		
-		super.onPause();
-    }
-
-    public void determineAddress(View v) {
-    	Log.d(LOG_TAG, "determineAddress clicked");
-
-    }
-
-    public void forceAddressReload(View v) {
-    	Log.d(LOG_TAG, "forceAddressReload clicked");
-	
-		//Intent i = new Intent(getApplicationContext(), StartAtBootService.class);
-    	Intent i = new Intent();
-		i.setAction("to.doc.android.ipv6config.StartAtBootService");
-		getApplicationContext().startService(i);
     }
     
     /** This method doesn't work on Android pre-Honeycomb (3.0) systems for getting IPv6 addresses. */ 
