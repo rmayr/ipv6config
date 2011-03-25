@@ -13,12 +13,8 @@ package to.doc.android.ipv6config;
 
 import java.io.IOException;
 import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Enumeration;
+import java.net.UnknownHostException;
 import java.util.LinkedList;
-import java.util.Vector;
 
 import to.doc.android.ipv6config.LinuxIPCommandHelper.InterfaceDetail;
 import to.doc.android.ipv6config.LinuxIPCommandHelper.InetAddressWithNetmask;
@@ -28,6 +24,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -36,6 +33,7 @@ import android.widget.TextView;
 import android.widget.TextView.BufferType;
 
 public class IPv6Config extends Activity {
+	/** This tag is used for Android logging. */
 	public final static String LOG_TAG = "IPv6Config";
 	
 	private CheckBox autoStart;
@@ -82,6 +80,17 @@ public class IPv6Config extends Activity {
     	Log.d(LOG_TAG, "determineAddress clicked");
 
     	displayLocalAddresses();
+    	String outboundIPv6Addr = IPv6AddressesHelper.getOutboundIPv6Address();
+    	String text = outboundIPv6Addr;
+    	try {
+			if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(outboundIPv6Addr))) {
+				text += "\nWARNING: privacy extensions not in use, device can be globally tracked";
+				globalAddress.setTextColor(Color.RED);
+			}
+		} catch (UnknownHostException e) {
+			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + outboundIPv6Addr, e);
+		}
+		globalAddress.setText(text);
     }
 
     public void forceAddressReload(View v) {
@@ -104,7 +113,7 @@ public class IPv6Config extends Activity {
 				StringBuilder addrs = new StringBuilder();
 				boolean hasPrivacySensitiveAddress = false;
 				for (InetAddressWithNetmask addr : iface.addresses) {
-					addrs.append(addr.address.toString() + " ");
+					addrs.append(addr.address.getHostAddress() + " ");
 					if (addr.isIPv6GlobalMacDerivedAddress()) hasPrivacySensitiveAddress = true;
 				}
 				Log.e(LOG_TAG, "Interface " + iface.name + " with MAC " + iface.mac + 
@@ -121,37 +130,4 @@ public class IPv6Config extends Activity {
 		}
     }
     
-    /** This method tries to retrieve the IPv6 address visible to servers by 
-     * querying https://doc.to/getip/.
-     * @return the IPv6 address of this host that is used to connect to other
-     *         hosts or null if IPv6 connections to https://doc.to are not
-     *         possible.
-     */
-    public String getOutboundIPv6Address() {
-    	
-    }
-    
-    /** This method doesn't work on Android pre-Honeycomb (3.0) systems for getting IPv6 addresses. */ 
-    public Vector<String> getLocalAddresses() {
-    	Vector<String> addrs = new Vector<String>();
-        try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-                NetworkInterface intf = en.nextElement();
-               	for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-               		InetAddress inetAddress = enumIpAddr.nextElement();
-               		if (!inetAddress.isLoopbackAddress()) {
-               			Log.e(LOG_TAG, "Found non-loopback address: " + inetAddress.getHostAddress());
-               			addrs.add(inetAddress.getHostAddress());
-               		}
-               		
-               		if (inetAddress instanceof Inet6Address) {
-               			Log.e(LOG_TAG, "Found IPv6 address: " + inetAddress.getHostAddress());
-               		}
-                }
-            }
-        } catch (SocketException ex) {
-            Log.e(LOG_TAG, ex.toString());
-        }
-        return addrs;
-    }
 }

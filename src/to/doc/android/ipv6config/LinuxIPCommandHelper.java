@@ -93,18 +93,7 @@ public class LinuxIPCommandHelper {
 		 * address using the EUI scheme.
 		 */
 		public boolean isIPv6GlobalMacDerivedAddress() {
-			if (address == null || ! (address instanceof Inet6Address))
-				// only check valid IPv6 addresses
-				return false;
-			Inet6Address addr6 = (Inet6Address) address;
-			
-			if (addr6.isLinkLocalAddress())
-				// if it's link-local, it may be MAC-derived, but not privacy sensitive
-				return false;
-
-			byte[] addrByte = addr6.getAddress();
-			// MAC-derivation adds "FFFE" in the middle of the 48 bits MAC
-			return addrByte[11] == (byte) 0xff && addrByte[12] == (byte) 0xfe;
+			return IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(address);
 		}
 	}
 	

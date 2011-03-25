@@ -9,7 +9,7 @@
     android:layout_height="wrap_content" android:text="@string/ipv6Address" android:id="@+id/labelLocalAdresses"/>
 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewLocalAddresses" android:text="@string/notSet"></TextView>
 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/labelGlobalAddress" android:text="@string/ipv6GlobalAddress"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewGlobalAddress" android:text="@string/notSet"></TextView>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewGlobalAddress" android:text="@string/notSet" android:textStyle="bold"></TextView>
 <Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/determineAddress" android:id="@+id/buttonDetermineAddress" android:onClick="determineAddress"></Button>
 <CheckBox android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/autostart" android:id="@+id/checkboxAutostart"></CheckBox>
 <CheckBox android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ipv6privacy" android:id="@+id/checkboxEnablePrivacy"></CheckBox>
