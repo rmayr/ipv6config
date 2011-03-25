@@ -47,8 +47,9 @@ public class LinuxIPCommandHelper {
 	/** Identifies an IPv6 address. */
 	private final static String ADDRESS_IPV6 = "inet6";
 
+	public final static String GET_INTERFACES_LINUX_BINARY = "/system/bin/ip"; 
 	/** Command to get and set network interface addresses and options under modern Linux systems. */
-	public final static String GET_INTERFACES_LINUX = "/system/bin/ip addr";
+	public final static String GET_INTERFACES_LINUX = GET_INTERFACES_LINUX_BINARY + " addr";
 	/** Option to the GET_INTERFACES_LINUX command to select a specific interface. */
 	public final static String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
 
@@ -143,6 +144,13 @@ public class LinuxIPCommandHelper {
 	 */
 	public static LinkedList<InterfaceDetail> getIfaceOutput(String iface) throws IOException {
 		logger.finer("Acquiring interface details for iface " + iface);
+		
+		// sanity check: can we actually execute our command?
+		if (! new File(GET_INTERFACES_LINUX_BINARY).canRead()) {
+			logger.warning("Could not find binary " + GET_INTERFACES_LINUX_BINARY +
+					", unable to read network interface details");
+			return null;
+		}
 		
 		StringTokenizer lines = null;
 		LinkedList<InterfaceDetail> list = new LinkedList<InterfaceDetail>();
@@ -334,11 +342,12 @@ public class LinuxIPCommandHelper {
 		
 		// for now, use static interface names
 		// TODO: take all interfaces with IPv6 addresses as well
-		allIfaces.add("eth0");
-		allIfaces.add("rmnet0");
+		allIfaces.add("eth0"); // WLAN interface on HTC Desire and Desire HD
+		allIfaces.add("rmnet0"); // GPRS/UMTS interface
 		allIfaces.add("rmnet1");
 		allIfaces.add("rmnet2");
-		allIfaces.add("ip6tnl0");
+		allIfaces.add("ip6tnl0"); // IPv6 in/over IPv4 tunnel
+		allIfaces.add("tiwlan0"); // WLAN interface on Motorola Milestone
 		
 		for (String iface: allIfaces) {
 			File configDir = new File(IPV6_CONFIG_TREE + iface); 

@@ -132,6 +132,8 @@ public class IPv6Config extends Activity {
     	
     	try {
 			LinkedList<InterfaceDetail> ifaces = LinuxIPCommandHelper.getIfaceOutput();
+			if (ifaces == null) return;
+			
 			for (InterfaceDetail iface : ifaces) {
 				StringBuilder addrs = new StringBuilder();
 				boolean hasPrivacySensitiveAddress = false;
@@ -149,7 +151,6 @@ public class IPv6Config extends Activity {
 			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
 					LinuxIPCommandHelper.GET_INTERFACES_LINUX + " could not be executed. " +
 					"Missing access rights? " + e.toString());
-			e.printStackTrace();
 		}
     }
     
