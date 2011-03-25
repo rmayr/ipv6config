@@ -30,6 +30,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.TextView.BufferType;
 
 public class IPv6Config extends Activity {
@@ -80,6 +81,7 @@ public class IPv6Config extends Activity {
     	Log.d(LOG_TAG, "determineAddress clicked");
 
     	displayLocalAddresses();
+    	
     	String outboundIPv6Addr = IPv6AddressesHelper.getOutboundIPv6Address();
     	String text = outboundIPv6Addr;
     	try {
@@ -87,10 +89,22 @@ public class IPv6Config extends Activity {
 				text += "\nWARNING: privacy extensions not in use, device can be globally tracked";
 				globalAddress.setTextColor(Color.RED);
 			}
+			else
+				globalAddress.setTextColor(Color.GREEN);
 		} catch (UnknownHostException e) {
 			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + outboundIPv6Addr, e);
 		}
 		globalAddress.setText(text);
+    }
+    
+    public void changeAddressPrivacyState(View v) {
+    	Log.d(LOG_TAG, "checkBoxEnablePrivacy clicked/changed status");
+
+    	// apply change immediately when clicking the checkbox, but don't reload until forced
+    	applySettingsWithGuiFeedback(getApplicationContext(), enablePrivacy.isChecked(), false);
+
+    	// and reload address display
+    	displayLocalAddresses();
     }
 
     public void forceAddressReload(View v) {
@@ -99,8 +113,17 @@ public class IPv6Config extends Activity {
 		/* Do the major processing in a background service that will 
 		 * terminate after it's done so as not to block the main thread.
 		 */
-    	if (enablePrivacy.isChecked())
+    	if (enablePrivacy.isChecked() && autoStart.isChecked())
     		getApplicationContext().startService( new Intent(getApplicationContext(), StartAtBootService.class));
+    	else
+    		/* TODO in the case that we can't rely on the StartAtBootService (which will only force reload when
+    		 * both fields are checked), we simply call the force in the main thread. This is not optimal, 
+    		 * should also do in the background here - most probably by making StartAtBootService more
+    		 * configurable with service calling parameters? */
+        	applySettingsWithGuiFeedback(getApplicationContext(), enablePrivacy.isChecked(), true);
+
+    	// and reload address display
+    	displayLocalAddresses();
     }
     
     public void displayLocalAddresses() {
@@ -130,4 +153,14 @@ public class IPv6Config extends Activity {
 		}
     }
     
+    public static void applySettingsWithGuiFeedback(Context context, boolean enablePrivacy, boolean forceReload) {
+		if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, forceReload))
+		    Toast.makeText(context, 
+		    		enablePrivacy ? context.getString(R.string.toastEnableSuccess) : context.getString(R.string.toastDisableSuccess), 
+	        		Toast.LENGTH_LONG).show();
+		else
+		    Toast.makeText(context, 
+		    		enablePrivacy ? context.getString(R.string.toastEnableFailure) : context.getString(R.string.toastDisableFailure),
+	        		Toast.LENGTH_LONG).show();
+    }
 }

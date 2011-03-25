@@ -6,7 +6,11 @@
     <string name="autostart">Apply settings on device bootup</string>
     <string name="ipv6privacy">Enable IPv6 address privacy</string>
     <string name="forceAddressReload">Force new IPv6 address assignment</string>
-    <string name="determineAddress">Determine global IPv6 address</string>
+    <string name="determineAddress">Determine globally visible IPv6 address</string>
     <string name="ipv6GlobalAddress">Globally visible IPv6 address:</string>
     <string name="notSet">not yet determined</string>
+    <string name="toastEnableSuccess">IPv6Config successfully enabled address privacy</string>
+    <string name="toastDisableSuccess">IPv6Config successfully disabled address privacy</string>
+    <string name="toastEnableFailure">"IPv6Config could not enable address privacy on all interfaces, your privacy is NOT guaranteed at this time!"</string>
+    <string name="toastDisableFailure">IPv6Config could not disable address privacy on all interfaces, some may still use random addresses</string>
 </resources>

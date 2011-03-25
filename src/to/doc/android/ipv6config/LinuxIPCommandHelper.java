@@ -61,8 +61,10 @@ public class LinuxIPCommandHelper {
 	public final static String IPV6_CONFIG_TREE = "/proc/sys/net/ipv6/conf/";
 	/** First part of the command to enable IPv6 address privacy (before interface name). */
 	private final static String ENABLE_ADDRESS_PRIVACY_PART1 = "echo 2 > " + IPV6_CONFIG_TREE;
-	/** Second part of the command to enable IPv6 address privacy (after interface name). */
-	private final static String ENABLE_ADDRESS_PRIVACY_PART2 = "/use_tempaddr";
+	/** First part of the command to disable IPv6 address privacy (before interface name). */
+	private final static String DISABLE_ADDRESS_PRIVACY_PART1 = "echo 0 > " + IPV6_CONFIG_TREE;
+	/** Second part of the command to enable/disable IPv6 address privacy (after interface name). */
+	private final static String ADDRESS_PRIVACY_PART2 = "/use_tempaddr";
 	/** Interface "name" to denote all network interface for kernel configuration options. */ 
 	private final static String CONF_INTERFACES_ALL = "all";
 	/** Interface "name" to denote the default kernel configuration options for new (hotplug enabled) network interfaces. */ 
@@ -314,13 +316,15 @@ public class LinuxIPCommandHelper {
 		return options;
 	}
 	
-	/** Enable address privacy for all interfaces and potentially try to force reload. 
+	/** Enable address privacy for all interfaces and potentially try to force reload.
+	 * 
+	 * @param enablePrivacy If true, enable privacy. If false, disable address privacy. 
 	 * @param forceAddressReload If set to true, each interface will also be 
 	 *        reset by calling forceAddressReload.
 	 * @return false if address privacy could not be set on any of the interfaces,
 	 *         true if all of them could be set.
 	 */
-	public static boolean enableIPv6AddressPrivacy(boolean forceAddressReload) {
+	public static boolean enableIPv6AddressPrivacy(boolean enablePrivacy, boolean forceAddressReload) {
 		boolean ret = true;
 		LinkedList<String> allIfaces = new LinkedList<String>();
 		
@@ -340,7 +344,7 @@ public class LinuxIPCommandHelper {
 			File configDir = new File(IPV6_CONFIG_TREE + iface); 
 			// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
 			if (configDir.isDirectory())
-				if (enableIPv6AddressPrivacy(iface)) {
+				if (enableIPv6AddressPrivacy(iface, enablePrivacy)) {
 						if (forceAddressReload && !iface.equals(CONF_INTERFACES_ALL) && !iface.equals(CONF_INTERFACES_DEFAULT))
 							forceAddressReload(iface);
 				}
@@ -354,11 +358,14 @@ public class LinuxIPCommandHelper {
 	/** Enable address privacy for a specific interface. This sets the 
 	 * "use_tempaddr" kernel option to "2" for the given interface.
 	 * 
+	 * @param enablePrivacy If true, enable privacy. If false, disable address privacy. 
 	 * @return true if the kernel option could be set, false otherwise. 
 	 */
-	public static boolean enableIPv6AddressPrivacy(String iface) {
+	public static boolean enableIPv6AddressPrivacy(String iface, boolean enablePrivacy) {
 		try {
-			if (Command.executeCommand(SH_COMMAND, true, ENABLE_ADDRESS_PRIVACY_PART1 + iface + ENABLE_ADDRESS_PRIVACY_PART2, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, 
+					(enablePrivacy ? ENABLE_ADDRESS_PRIVACY_PART1 : DISABLE_ADDRESS_PRIVACY_PART1) + 
+							iface + ADDRESS_PRIVACY_PART2, null, null) == 0) {
 				logger.finer("Enabled address privacy on interface " + iface);
 				return true;
 			}

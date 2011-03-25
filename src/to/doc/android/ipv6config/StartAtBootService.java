@@ -6,8 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
- 
+
 public class StartAtBootService extends Service 
 {
 	    public IBinder onBind(Intent intent) {
@@ -31,18 +30,10 @@ public class StartAtBootService extends Service
 	        Log.w(IPv6Config.LOG_TAG, "Set to autostart: " + autoStart);
 	        Log.w(IPv6Config.LOG_TAG, "Set to enable privacy: " + enablePrivacy);
 
-	        if (autoStart && enablePrivacy) {
+	        if (autoStart) {
 	        	Log.w(IPv6Config.LOG_TAG, "Now enabling address privacy on all currently known interfaces, this might take a few seconds...");
-	    		// TODO: decide how to handle force address reload when started during bootup
-	        	// probably keep it to be sure of enabling address privacy
-	    		if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(true))
-	    		    Toast.makeText(getApplicationContext(), 
-	    	        		"IPv6Config successfully enabled address privacy", 
-	    	        		Toast.LENGTH_LONG).show();
-	    		else
-	    		    Toast.makeText(getApplicationContext(), 
-	    	        		"IPv6Config could not enable address privacy on all interfaces, your privacy is NOT guaranteed at this time!", 
-	    	        		Toast.LENGTH_LONG).show();
+	        	// only force reloading addresses when we enable privacy, not when we explicitly disable it
+	        	IPv6Config.applySettingsWithGuiFeedback(getApplicationContext(), enablePrivacy, enablePrivacy);
 	        }
 
 	    	// we only need to apply the settings once, they will remain in the kernel space

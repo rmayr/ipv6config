@@ -134,7 +134,7 @@ public class IPv6AddressesHelper {
 			logger.log(Level.FINE, "URL " + GET_OUTBOUND_IP_URL + " returned content type " + retMimeType);
 			
 			InputStreamReader in = new InputStreamReader((InputStream) conn.getContent());
-		    BufferedReader buff = new BufferedReader(in);
+		    BufferedReader buff = new BufferedReader(in, 2048);
 		    StringBuffer reply = new StringBuffer();
 		    String line = null;
 		    do {
