@@ -149,7 +149,8 @@ public class IPv6Config extends Activity {
 			}
 		} catch (IOException e) {
 			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
-					LinuxIPCommandHelper.GET_INTERFACES_LINUX + " could not be executed. " +
+					LinuxIPCommandHelper.GET_INTERFACES_LINUX_BINARY + " or " + 
+					LinuxIPCommandHelper.GET_INTERFACES_LINUX_BINARY_ALT + " could not be executed. " +
 					"Missing access rights? " + e.toString());
 		}
     }

@@ -48,8 +48,10 @@ public class LinuxIPCommandHelper {
 	private final static String ADDRESS_IPV6 = "inet6";
 
 	public final static String GET_INTERFACES_LINUX_BINARY = "/system/bin/ip"; 
+	public final static String GET_INTERFACES_LINUX_BINARY_ALT = "/system/xbin/ip"; 
+
 	/** Command to get and set network interface addresses and options under modern Linux systems. */
-	public final static String GET_INTERFACES_LINUX = GET_INTERFACES_LINUX_BINARY + " addr";
+	public final static String GET_INTERFACES_LINUX_COMMAND = " addr";
 	/** Option to the GET_INTERFACES_LINUX command to select a specific interface. */
 	public final static String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
 
@@ -145,19 +147,28 @@ public class LinuxIPCommandHelper {
 	public static LinkedList<InterfaceDetail> getIfaceOutput(String iface) throws IOException {
 		logger.finer("Acquiring interface details for iface " + iface);
 		
+		String cmd;
+		
 		// sanity check: can we actually execute our command?
 		if (! new File(GET_INTERFACES_LINUX_BINARY).canRead()) {
-			logger.warning("Could not find binary " + GET_INTERFACES_LINUX_BINARY +
-					", unable to read network interface details");
-			return null;
+			if (! new File(GET_INTERFACES_LINUX_BINARY_ALT).canRead()) {
+				logger.warning("Could not find binaries " + GET_INTERFACES_LINUX_BINARY +
+						" or " + GET_INTERFACES_LINUX_BINARY_ALT +
+						", unable to read network interface details");
+				return null;
+			}
+			else
+				cmd = GET_INTERFACES_LINUX_BINARY_ALT + GET_INTERFACES_LINUX_COMMAND;
 		}
-		
+		else
+			cmd = GET_INTERFACES_LINUX_BINARY + GET_INTERFACES_LINUX_COMMAND;
+			
 		StringTokenizer lines = null;
 		LinkedList<InterfaceDetail> list = new LinkedList<InterfaceDetail>();
 		
 		try {
 			lines =	new StringTokenizer(Command.executeCommand(
-						GET_INTERFACES_LINUX + (iface != null ? 
+						cmd + (iface != null ? 
 						 (GET_INTERFACES_LINUX_SELECTOR + iface) : ""),
 						false, false, null), "\n");
 		} catch (Exception e) {
