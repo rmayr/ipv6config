@@ -18,6 +18,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -349,13 +350,14 @@ public class LinuxIPCommandHelper {
 		
 		boolean ret = true;
 		LinkedList<String> allIfaces = new LinkedList<String>();
+		LinkedList<String> modifiedIfaces = new LinkedList<String>();
 		
 		// include the special "default" and "all" trees
 		allIfaces.add(CONF_INTERFACES_ALL);
 		allIfaces.add(CONF_INTERFACES_DEFAULT);
 		
 		// for now, use static interface names
-		// TODO: take all interfaces with IPv6 addresses as well
+		// TODO: take all other interfaces with IPv6 addresses as well
 		allIfaces.add("eth0"); // WLAN interface on HTC Desire, Desire HD and Google Nexus S (and probably others)
 		allIfaces.add("rmnet0"); // GPRS/UMTS interface
 		allIfaces.add("rmnet1");
@@ -367,13 +369,14 @@ public class LinuxIPCommandHelper {
 			File configDir = new File(IPV6_CONFIG_TREE + iface); 
 			// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
 			if (configDir.isDirectory())
-				if (enableIPv6AddressPrivacy(iface, enablePrivacy)) {
-						if (forceAddressReload && !iface.equals(CONF_INTERFACES_ALL) && !iface.equals(CONF_INTERFACES_DEFAULT))
-							forceAddressReload(iface);
-				}
+				if (enableIPv6AddressPrivacy(iface, enablePrivacy))
+					modifiedIfaces.add(iface);
 				else
 					ret = false;
 		}
+		
+		if (forceAddressReload)
+			forceAddressReload(modifiedIfaces);
 		
 		return ret;
 	}
@@ -422,6 +425,48 @@ public class LinuxIPCommandHelper {
 				logger.warning("Unable to set interface " + iface + " down");
 				return false;
 			}
+		} catch (IOException e) {
+			logger.severe("Unable to execute system command, new addresses may not have been set (access privileges missing?) " + e);
+			return false;
+		} catch (InterruptedException e) {
+			return false;
+		}
+	}
+
+	/** Tries to force all specified interfaces to reset their addresses by setting them down and then up. */
+	public static boolean forceAddressReload(List<String> ifaces) {
+		boolean ret = true;
+		LinkedList<String> downedIfaces = new LinkedList<String>();
+		
+		try {
+			// first set all interfaces down
+			for (String iface : ifaces) {
+				// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
+				File configDir = new File(IPV6_CONFIG_TREE + iface);
+				if (configDir.isDirectory() && !iface.equals(CONF_INTERFACES_ALL) && !iface.equals(CONF_INTERFACES_DEFAULT)) {
+					if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + DOWN, null, null) == 0)
+						downedIfaces.add(iface);
+					else {
+						logger.warning("Unable to set interface " + iface + " down, will not try to set it up again");
+						ret = false;
+					}
+				}
+			}
+			
+			// then wait just a little for the interfaces to properly go down
+			Thread.sleep(INTERFACE_DOWN_UP_DELAY);
+			
+			// and start all those again that were set down
+			for (String iface : downedIfaces) {
+				if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + UP, null, null) == 0) 
+					logger.finer("Reset interface " + iface + " to force address reload");
+				else {
+					logger.warning("Set interface " + iface + " down but was unable to set it up again");
+					ret = false;
+				}
+			}
+			
+			return ret;
 		} catch (IOException e) {
 			logger.severe("Unable to execute system command, new addresses may not have been set (access privileges missing?) " + e);
 			return false;
