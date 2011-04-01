@@ -69,12 +69,15 @@ public class IPv6Config extends Activity {
     
     @Override
     public void onPause() {
+		savePreferences();
+		super.onPause();
+    }
+    
+    private void savePreferences() {
     	Editor prefsPrivateEditor = prefsPrivate.edit();
 		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
 		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
 		prefsPrivateEditor.commit();
-		
-		super.onPause();
     }
 
     public void determineAddress(View v) {
@@ -109,6 +112,7 @@ public class IPv6Config extends Activity {
 
     public void forceAddressReload(View v) {
     	Log.d(LOG_TAG, "forceAddressReload clicked");
+    	savePreferences();
 	
 		/* Do the major processing in a background service that will 
 		 * terminate after it's done so as not to block the main thread.

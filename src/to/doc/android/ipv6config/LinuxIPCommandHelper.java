@@ -344,6 +344,9 @@ public class LinuxIPCommandHelper {
 	 *         true if all of them could be set.
 	 */
 	public static boolean enableIPv6AddressPrivacy(boolean enablePrivacy, boolean forceAddressReload) {
+		logger.fine((enablePrivacy ? "Enabling" : "Disabling") + " IPv6 address privacy" +
+				(forceAddressReload ? " and forcing reload of interfaces" : ""));
+		
 		boolean ret = true;
 		LinkedList<String> allIfaces = new LinkedList<String>();
 		
@@ -353,7 +356,7 @@ public class LinuxIPCommandHelper {
 		
 		// for now, use static interface names
 		// TODO: take all interfaces with IPv6 addresses as well
-		allIfaces.add("eth0"); // WLAN interface on HTC Desire and Desire HD
+		allIfaces.add("eth0"); // WLAN interface on HTC Desire, Desire HD and Google Nexus S (and probably others)
 		allIfaces.add("rmnet0"); // GPRS/UMTS interface
 		allIfaces.add("rmnet1");
 		allIfaces.add("rmnet2");

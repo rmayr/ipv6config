@@ -41,13 +41,15 @@ Tested devices and rooting applications/methods:
 ------------------------------------------------
 This application has been tested successfully on:
 
+ * Google Nexus S GT-i9023 with Android 2.3.3 (rooted with Clockwork Recovery 
+   3.0.0.0-crespo, then busybox installed with Busybox Installer app)  
  * HTC Desire with Android 2.2 (unrevoked)
  * HTC Desire HD with Android 2.3 (Visionary+ r14)
  * Motorola Milestone with Cyanogenmod 7 rc3
 
 IPv6Config will not currently work on:
 
- * Motorola Milestone with Android 2.1 (ip binary missing)
+ * Motorola Milestone with stock Android 2.1 (ip binary missing)
  * Samsung Galaxy Tab GT-P1000 (z4root) because the Samsung kernel has not been
    compiled with IPv6 address privacy extensions. (busybox also doesn't link to
    the ip binary, but that could be worked around by calling "busybox ip" 
