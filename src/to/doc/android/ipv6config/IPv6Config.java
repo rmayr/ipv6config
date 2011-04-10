@@ -1,11 +1,11 @@
 /*****************************************************************************
  *  Project: Android IPv6Config
  *  Description: Android application to change IPv6 kernel configuration
- *  Author: Rene Mayrhofer
- *  Copyright: Rene Mayrhofer, 2011-2011
+ *  Author: René Mayrhofer
+ *  Copyright: René Mayrhofer, 2011-2011
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License version 3 
+ * it under the terms of the GNU General Public License version 3 
  * as published by the Free Software Foundation.
  *****************************************************************************/
 
@@ -27,6 +27,9 @@ import android.content.SharedPreferences.Editor;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
@@ -66,11 +69,31 @@ public class IPv6Config extends Activity {
 
         displayLocalAddresses();
     }
-    
+
+    /** Called when the activity is sent to the background or is terminated. */
     @Override
     public void onPause() {
 		savePreferences();
 		super.onPause();
+    }
+    
+    /** Called when the activity menu is created */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    /** Called whenever a menu entry is selected. */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.about_menuitem:
+            	startActivity(new Intent(this, About.class));
+        }
+        return true;
     }
     
     private void savePreferences() {

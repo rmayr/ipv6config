@@ -67,10 +67,17 @@ I compile: one that can be installed for free and one version that will donate
 a small amount. Both versions are completely the same, and the free version 
 is not restricted in any way. In fact, anybody can take the source code and
 compile and install the APK and even redistribute it as long as they conform
-to the terms of the GNU GPL version 2 or 3.
+to the terms of the GNU GPL version 3 (that is, the modified source code is
+redistributed as well) and use different application icons.
+
 The donate version is in the market if you would like to donate to the further
 development of this and other applications. Luckily, I do not have to make a 
 living with my applications, and therefore release all of them as open source.
 However, I do have infrastructure costs for my own server, which I use as a 
-development resource. If you wish to contribute towards these development 
-costs, then please buy the donate version. If not, then just take the free one.
+development resource and e.g. to support determining the globally visible IPv6
+address in this application. If you wish to contribute towards these 
+development costs, then please buy the donate version. If not, then just take 
+the free one.
+
+==============================================================================
+Copyright (C) René Mayrhofer, 2011

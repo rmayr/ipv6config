@@ -1,11 +1,11 @@
 /*****************************************************************************
  *  Project: Android IPv6Config
  *  Description: Android application to change IPv6 kernel configuration
- *  Author: Rene Mayrhofer
- *  Copyright: Rene Mayrhofer, 2011-2011
+ *  Author: René Mayrhofer
+ *  Copyright: René Mayrhofer, 2011-2011
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License version 3 
+ * it under the terms of the GNU General Public License version 3 
  * as published by the Free Software Foundation.
  *****************************************************************************/
 
