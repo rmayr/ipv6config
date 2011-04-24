@@ -6,6 +6,7 @@
 *.blg
 *.bbl
 *.bib.bak
+.directory
 bin/
 gen/
 local.properties
