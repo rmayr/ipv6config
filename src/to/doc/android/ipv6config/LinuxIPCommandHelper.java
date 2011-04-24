@@ -188,7 +188,7 @@ public class LinuxIPCommandHelper {
 		}
 		
 		InterfaceDetail cur = null;
-		while (lines.hasMoreTokens()) {
+		while (lines != null && lines.hasMoreTokens()) {
 			String line = lines.nextToken();
 			logger.finest("getIfaceOutput: parsing line '" + line + "'");
 			if (! Character.isWhitespace(line.charAt(0))) {
