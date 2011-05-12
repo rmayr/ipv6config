@@ -1,6 +1,6 @@
 #!/bin/sh
 
-IFACE=sit64o4
+IFACE=sit6to4
 # try to automagically figure out our IPv4 default route
 EXTIF=$(ip route show | egrep "^default" | sed 's/.* dev \(\w*\).*/\1/')
 # try to use the non-secondary address if we have multiple
