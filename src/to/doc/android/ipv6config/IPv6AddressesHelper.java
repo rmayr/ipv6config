@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -210,6 +211,19 @@ public class IPv6AddressesHelper {
 		// MAC-derivation adds "FFFE" in the middle of the 48 bits MAC
 		return addrByte[11] == (byte) 0xff && addrByte[12] == (byte) 0xfe;
 	}
+	
+	/** Computes the 64 bit 6to4 prefix from a given IPv4 base address. The 
+	 * format is 2002:%02x%02x:%02x%02x with the 4 bytes of ipv4Base filled in.
+	 */
+	public static String compute6to4Prefix(Inet4Address ipv4Base) {
+		if (ipv4Base == null)
+			return null;
+		
+		byte[] addrBytes = ipv4Base.getAddress();
+		String prefix = String.format("2002:%02x%02x:%02x%02x", 
+				addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]);
+		return prefix;
+	}
     
     /** Dummy main routine to call the helper methods and print on console. */
     public static void main(String[] args) throws UnknownHostException {
@@ -217,8 +231,11 @@ public class IPv6AddressesHelper {
     	for (String a : localAddrs)
     		System.out.println("Found local non-loopback address: " + a);
     	
-    	System.out.println("Found outbound (locally queried) IPv4 address: " + 
-    			LinuxIPCommandHelper.getOutboundIPv4Address());
+    	Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
+    	if (outboundIPv4Addr != null) {
+    		System.out.println("Found outbound (locally queried) IPv4 address: " + outboundIPv4Addr.getHostAddress());
+    		System.out.println("Derived 6to4 prefix is: " + compute6to4Prefix(outboundIPv4Addr));
+    	}
     	System.out.println("Found outbound (externally visible) IPv4 address: " + queryServerForOutboundAddress(null));
     	
     	String outboundIPv6Addr = getOutboundIPv6Address();
