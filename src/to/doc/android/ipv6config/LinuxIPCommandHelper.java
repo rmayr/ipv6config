@@ -47,6 +47,11 @@ public class LinuxIPCommandHelper {
 
 	/** Identifies an IPv6 address. */
 	private final static String ADDRESS_IPV6 = "inet6";
+	
+	/** Identifies the gateway of a route. */
+	private final static String ROUTE_GATEWAY = "via";
+	/** Identifies the device of a route. */
+	private final static String ROUTE_DEVICE = "dev";
 
 	public final static String GET_INTERFACES_LINUX_BINARY = "/system/bin/ip"; 
 	public final static String GET_INTERFACES_LINUX_BINARY_ALT = "/system/xbin/ip"; 
@@ -55,6 +60,12 @@ public class LinuxIPCommandHelper {
 	public final static String GET_INTERFACES_LINUX_COMMAND = " addr";
 	/** Option to the GET_INTERFACES_LINUX command to select a specific interface. */
 	public final static String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
+	
+	/** Command to get and set routes under modern Linux systems. */
+	public final static String GET_ROUTES_LINUX_COMMAND = " route";
+	
+	/** Option to select only IPv6 addresses/routes. */
+	public final static String OPTION_IPv6_ONLY = " -6 ";
 
 	/** Command to get and set Ethernet interface details under Linux systems. */
 	public final static String ETHTOOL_COMMAND = "/usr/sbin/ethtool ";
@@ -148,22 +159,7 @@ public class LinuxIPCommandHelper {
 	public static LinkedList<InterfaceDetail> getIfaceOutput(String iface) throws IOException {
 		logger.finer("Acquiring interface details for iface " + iface);
 		
-		String cmd;
-		
-		// sanity check: can we actually execute our command?
-		if (! new File(GET_INTERFACES_LINUX_BINARY).canRead()) {
-			if (! new File(GET_INTERFACES_LINUX_BINARY_ALT).canRead()) {
-				logger.warning("Could not find binaries " + GET_INTERFACES_LINUX_BINARY +
-						" or " + GET_INTERFACES_LINUX_BINARY_ALT +
-						", unable to read network interface details");
-				return null;
-			}
-			else
-				cmd = GET_INTERFACES_LINUX_BINARY_ALT + GET_INTERFACES_LINUX_COMMAND;
-		}
-		else
-			cmd = GET_INTERFACES_LINUX_BINARY + GET_INTERFACES_LINUX_COMMAND;
-			
+		String cmd = getIPCommandLocation() + GET_INTERFACES_LINUX_COMMAND;
 		StringTokenizer lines = null;
 		LinkedList<InterfaceDetail> list = new LinkedList<InterfaceDetail>();
 		
@@ -286,8 +282,91 @@ public class LinuxIPCommandHelper {
 		return list;
 	}
 
-	/**
-	 * Executes the command ethtool for the given network interface and returns the output within a HashMap.
+	/** This class represents a route with a target (as a string, because it 
+	 * can take on special values such as "default" in addition to target 
+	 * networks), a gateway, and an interface. Gateway or (exclusive or) iface
+	 * may be null. 
+	 */
+	public static class RouteDetail {
+		public String target;
+		public InetAddress gateway;
+		public String iface;
+	}
+
+	/** Returns the list of routes in the main routing table. 
+	 *  
+	 * @param queryIPv6 If true, then IPv6 routes are queried. If false, then IPv4 routes are queried.
+	 */
+	public static LinkedList<RouteDetail> getRouteOutput(boolean queryIPv6) throws IOException {
+		logger.finer("Acquiring route details");
+		
+		String cmd = getIPCommandLocation() + GET_ROUTES_LINUX_COMMAND +
+			(queryIPv6 ? OPTION_IPv6_ONLY : "");
+		StringTokenizer lines = null;
+		LinkedList<RouteDetail> list = new LinkedList<RouteDetail>();
+		
+		try {
+			lines =	new StringTokenizer(Command.executeCommand(cmd,	false, false, null), "\n");
+		} catch (Exception e) {
+			logger.log(Level.WARNING, "Tried to parse interface stati for all interfaces, but could not", e);
+		}
+		
+		RouteDetail cur = null;
+		while (lines != null && lines.hasMoreTokens()) {
+			String line = lines.nextToken();
+			logger.finest("getRouteOutput: parsing line '" + line + "'");
+
+			StringTokenizer fields = new StringTokenizer(line, " \t");
+			
+			// the first field is always the target
+			cur = new RouteDetail();
+			cur.target = fields.nextToken();
+
+			// then we get options defined by "dev" or "via" (and others that we ignore)
+			while (fields.hasMoreTokens()) {
+				String opt = fields.nextToken().trim();
+				logger.finest("getRouteOutput: trying to parse option '" + opt + "'");
+				
+				String value = fields.nextToken().trim();
+				logger.finest("getRouteOutput: trying to parse value '" + value + "'");
+
+				if (opt.equals(ROUTE_GATEWAY)) {
+					cur.gateway = InetAddress.getByName(value);
+					logger.finest("getRouteOutput: found gateway " + cur.gateway + " for target " + cur.target);
+				} else if (opt.equals(ROUTE_DEVICE)) {
+					cur.iface = value;
+					logger.finest("getRouteOutput: found interface " + cur.iface + " for target " + cur.target);
+				} else {
+					logger.finest("getRouteOutput: ignoring unknown option '" + opt + "'");
+				}
+			}
+			
+			// line finished, add route to list
+			list.add(cur);
+		}
+		
+		return list;
+	}
+
+	
+	/** Helper to locate a usable "ip" command or null if none is found. */
+	private static String getIPCommandLocation() {
+		// sanity check: can we actually execute our command?
+		if (! new File(GET_INTERFACES_LINUX_BINARY).canRead()) {
+			if (! new File(GET_INTERFACES_LINUX_BINARY_ALT).canRead()) {
+				logger.warning("Could not find binaries " + GET_INTERFACES_LINUX_BINARY +
+						" or " + GET_INTERFACES_LINUX_BINARY_ALT +
+						", unable to read network interface details");
+				return null;
+			}
+			else
+				return GET_INTERFACES_LINUX_BINARY_ALT;
+		}
+		else
+			return GET_INTERFACES_LINUX_BINARY;
+	}
+
+	/** Executes the command ethtool for the given network interface and returns the output within a HashMap.
 	 * @param device Get the information of this network interface card.
 	 * @return A map of options and their values, e.g. "Link detected", "Speed", "Duplex", and "Auto-negotiation". 
 	 */

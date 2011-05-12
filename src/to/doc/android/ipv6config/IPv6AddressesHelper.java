@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -187,6 +188,15 @@ public class IPv6AddressesHelper {
             logger.log(Level.SEVERE, ex.toString());
         }
         return addrs;
+    }
+   
+    /** Returns the IPv4 address of the interface that is used for the default 
+     * route. This is the IPv4 address that can be used for determining the 
+     * prefix for a 6to4 tunneling address.  
+     */
+    public static Inet4Address getOutboundIPv4Address() {
+    	// TODO
+    	return null;
     }
     
 	/** Returns true if this address is an IPv6 address, is globally routeable (i.e.
