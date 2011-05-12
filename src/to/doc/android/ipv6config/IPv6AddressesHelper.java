@@ -123,8 +123,9 @@ public class IPv6AddressesHelper {
 		    SSLContext sc = SSLContext.getInstance("TLS");
 		    sc.init(null, trustAllCerts, new java.security.SecureRandom());
 		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
 		    // and also disable hostname verification
-		    HttpsURLConnection.setDefaultHostnameVerifier( new HostnameVerifier(){
+		    HttpsURLConnection.setDefaultHostnameVerifier( new HostnameVerifier() {
 					@Override
 					public boolean verify(String arg0, SSLSession arg1) {
 						return true;
@@ -132,26 +133,39 @@ public class IPv6AddressesHelper {
 		    	});
 			
 		    // finally query the HTTPS URL
-			URLConnection conn = new URL(customURL != null ? customURL : GET_OUTBOUND_IP_URL).openConnection();
+		    String url = customURL != null ? customURL : GET_OUTBOUND_IP_URL;
+			URLConnection conn = new URL(url).openConnection();
+			/*conn.setRequestProperty("User-Agent","Mozilla/5.0 ( compatible ) ");
+			conn.setRequestProperty("Accept","[star]/[star]");*/
+			logger.log(Level.FINE, "Connecting to URL " + url);
 			conn.connect();
-			String retMimeType = conn.getContentType();
-			logger.log(Level.FINE, "URL " + 
-					(customURL != null ? customURL : GET_OUTBOUND_IP_URL) + 
-					" returned content type " + retMimeType);
 			
-			InputStreamReader in = new InputStreamReader((InputStream) conn.getContent());
-		    BufferedReader buff = new BufferedReader(in, 2048);
-		    StringBuffer reply = new StringBuffer();
-		    String line = null;
-		    do {
-		    	line = buff.readLine();
-		    	if (line != null) {
-		    		if (reply.length() > 0) reply.append("\n");
-		    		reply.append(line);
-		    	}
-		    } while (line != null);
-		    
-			return reply.toString();
+			if (conn instanceof HttpURLConnection) {
+				int statusCode = ((HttpURLConnection) conn).getResponseCode();
+				logger.log(Level.FINE, "URL " + url + " returned content type " + conn.getContentType() +
+					" and status code " + statusCode);
+
+				if (statusCode<200 || statusCode >=300) {
+					logger.warning("Querying for server-resolved IP address resulted in status code " +
+							statusCode + ", can not parse response");
+					return ((HttpURLConnection) conn).getResponseMessage();
+				}
+				
+				InputStreamReader in = new InputStreamReader((InputStream) conn.getContent());
+			    BufferedReader buff = new BufferedReader(in, 2048);
+			    StringBuffer reply = new StringBuffer();
+			    String line = null;
+			    do {
+			    	line = buff.readLine();
+			    	if (line != null) {
+			    		if (reply.length() > 0) reply.append("\n");
+			    		reply.append(line);
+			    	}
+			    } while (line != null);
+			    
+				return reply.toString();
+			}
+			return null;
     	}
     	catch (MalformedURLException e) {
 			logger.log(Level.SEVERE, "Internal error: URL deemed invalid " + GET_OUTBOUND_IP_URL, e);
