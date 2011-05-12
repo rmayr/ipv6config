@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -102,25 +103,46 @@ public class IPv6Config extends Activity {
 		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
 		prefsPrivateEditor.commit();
     }
+    
+    /** A helper class to query the doc.to server for the externally visible 
+     * IPv6 address asynchronously.
+     */
+    private class DetermineAddressTask extends AsyncTask<Void, Void, String> {
+    	/** This method will be executed in a background thread when execute() is called. */
+    	protected String doInBackground(Void... noParms) {
+    		// this can take a few seconds
+        	return IPv6AddressesHelper.getOutboundIPv6Address();
+    	}
+    	
+    	/** This method will be executed in the UI thread after doInBackground finishes. */
+    	protected void onPostExecute(String outboundIPv6Addr) {
+    		String text = outboundIPv6Addr;
+        	try {
+        		if (outboundIPv6Addr == null) {
+        			globalAddress.setTextColor(Color.YELLOW);
+        			text = "Unable to determine address, resolver server not reachable";
+        		} else if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(outboundIPv6Addr))) {
+    				text += "\nWARNING: privacy extensions not in use, device can be globally tracked";
+    				globalAddress.setTextColor(Color.RED);
+    			}
+    			else
+    				globalAddress.setTextColor(Color.GREEN);
+    		} catch (UnknownHostException e) {
+    			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + outboundIPv6Addr, e);
+    		}
+    		globalAddress.setText(text);
+    	}
+    }
 
     public void determineAddress(View v) {
     	Log.d(LOG_TAG, "determineAddress clicked");
 
     	displayLocalAddresses();
-    	
-    	String outboundIPv6Addr = IPv6AddressesHelper.getOutboundIPv6Address();
-    	String text = outboundIPv6Addr;
-    	try {
-			if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(outboundIPv6Addr))) {
-				text += "\nWARNING: privacy extensions not in use, device can be globally tracked";
-				globalAddress.setTextColor(Color.RED);
-			}
-			else
-				globalAddress.setTextColor(Color.GREEN);
-		} catch (UnknownHostException e) {
-			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + outboundIPv6Addr, e);
-		}
-		globalAddress.setText(text);
+
+    	// this can take a few seconds, so do it asynchronously
+    	globalAddress.setTextColor(Color.LTGRAY);
+    	globalAddress.setText("Determining address...");
+    	new DetermineAddressTask().execute();
     }
     
     public void changeAddressPrivacyState(View v) {

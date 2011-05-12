@@ -131,7 +131,9 @@ public class IPv6AddressesHelper {
 			URLConnection conn = new URL(customURL != null ? customURL : GET_OUTBOUND_IP_URL).openConnection();
 			conn.connect();
 			String retMimeType = conn.getContentType();
-			logger.log(Level.FINE, "URL " + GET_OUTBOUND_IP_URL + " returned content type " + retMimeType);
+			logger.log(Level.FINE, "URL " + 
+					(customURL != null ? customURL : GET_OUTBOUND_IP_URL) + 
+					" returned content type " + retMimeType);
 			
 			InputStreamReader in = new InputStreamReader((InputStream) conn.getContent());
 		    BufferedReader buff = new BufferedReader(in, 2048);
@@ -211,6 +213,8 @@ public class IPv6AddressesHelper {
     	Vector<String> localAddrs = getLocalAddresses();
     	for (String a : localAddrs)
     		System.out.println("Found local non-loopback address: " + a);
+    	
+    	System.out.println("Found outbound (externally visible) IPv4 address: " + queryServerForOutboundAddress(null));
     	
     	String outboundIPv6Addr = getOutboundIPv6Address();
     	System.out.println("Found outbound (externally visible) IPv6 address: " + outboundIPv6Addr);
