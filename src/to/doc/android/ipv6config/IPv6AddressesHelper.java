@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
@@ -51,6 +50,9 @@ public class IPv6AddressesHelper {
 
 	/** This method tries to retrieve the IPv6 address visible to servers by 
      * querying https://doc.to/getip/.
+     * 
+     * Attention: this may take a few seconds - don't do it in the foreground!
+     * 
      * @return the IPv6 address of this host that is used to connect to other
      *         hosts or null if IPv6 connections to https://doc.to are not
      *         possible.
@@ -190,15 +192,6 @@ public class IPv6AddressesHelper {
         return addrs;
     }
    
-    /** Returns the IPv4 address of the interface that is used for the default 
-     * route. This is the IPv4 address that can be used for determining the 
-     * prefix for a 6to4 tunneling address.  
-     */
-    public static Inet4Address getOutboundIPv4Address() {
-    	// TODO
-    	return null;
-    }
-    
 	/** Returns true if this address is an IPv6 address, is globally routeable (i.e.
 	 * it is not a link- or site-local address), and has been derived from a MAC
 	 * address using the EUI scheme.
@@ -224,6 +217,8 @@ public class IPv6AddressesHelper {
     	for (String a : localAddrs)
     		System.out.println("Found local non-loopback address: " + a);
     	
+    	System.out.println("Found outbound (locally queried) IPv4 address: " + 
+    			LinuxIPCommandHelper.getOutboundIPv4Address());
     	System.out.println("Found outbound (externally visible) IPv4 address: " + queryServerForOutboundAddress(null));
     	
     	String outboundIPv6Addr = getOutboundIPv6Address();

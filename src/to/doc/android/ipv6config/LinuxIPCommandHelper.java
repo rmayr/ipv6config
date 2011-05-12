@@ -44,17 +44,25 @@ public class LinuxIPCommandHelper {
 
 	/** Identifies an IPv4 address. */
 	private final static String ADDRESS_IPV4 = "inet";
-
 	/** Identifies an IPv6 address. */
 	private final static String ADDRESS_IPV6 = "inet6";
+	/** Identifies a secondary IPv4 address. */
+	private final static String ADDRESS_MODIFIER_SECONDARY = "secondary";
+	/** Identifies a temporary IPv6 address. */
+	private final static String ADDRESS_MODIFIER_TEMPORARY = "temporary";
+	/** Identifies a deprecated IPv6 address. */
+	private final static String ADDRESS_MODIFIER_DEPRECATED = "deprecated";
 	
 	/** Identifies the gateway of a route. */
 	private final static String ROUTE_GATEWAY = "via";
 	/** Identifies the device of a route. */
 	private final static String ROUTE_DEVICE = "dev";
 
-	public final static String GET_INTERFACES_LINUX_BINARY = "/system/bin/ip"; 
-	public final static String GET_INTERFACES_LINUX_BINARY_ALT = "/system/xbin/ip"; 
+	public final static String[] GET_INTERFACES_LINUX_BINARY_LOCATIONS = { 
+		"/sbin/ip",
+		"/bin/ip",
+		"/system/bin/ip",
+		"/system/xbin/ip" };
 
 	/** Command to get and set network interface addresses and options under modern Linux systems. */
 	public final static String GET_INTERFACES_LINUX_COMMAND = " addr";
@@ -98,6 +106,12 @@ public class LinuxIPCommandHelper {
 	public static class InetAddressWithNetmask {
 		public InetAddress address;
 		public int subnetLength;
+		/* Set to true if the "secondary" keyword is listed for this address. */ 
+		public boolean markedSecondary = false;
+		/* Set to true if the "temporary" keyword is listed for this address. */ 
+		public boolean markedTemporary = false;
+		/* Set to true if the "deprecated" keyword is listed for this address. */ 
+		public boolean markedDeprecated = false;
 
 		public InetAddressWithNetmask() {}
 		public InetAddressWithNetmask(InetAddress addr, int maskLength) {
@@ -269,6 +283,15 @@ public class LinuxIPCommandHelper {
 								addr.address = InetAddress.getByName(value);
 								addr.subnetLength = addr.address instanceof Inet4Address ? 32 : 128;
 							}
+							
+							// try to find additional modifiers
+							if (line.indexOf(ADDRESS_MODIFIER_SECONDARY) >= 0)
+								addr.markedSecondary = true;
+							if (line.indexOf(ADDRESS_MODIFIER_TEMPORARY) >= 0)
+								addr.markedTemporary = true;
+							if (line.indexOf(ADDRESS_MODIFIER_DEPRECATED) >= 0)
+								addr.markedDeprecated = true;
+							
 							cur.addresses.add(addr);
 							logger.finest("getIfaceOutput: found IP address " + addr
 									+ " for " + cur.name);
@@ -351,19 +374,16 @@ public class LinuxIPCommandHelper {
 	
 	/** Helper to locate a usable "ip" command or null if none is found. */
 	private static String getIPCommandLocation() {
+		String triedPaths = "";
 		// sanity check: can we actually execute our command?
-		if (! new File(GET_INTERFACES_LINUX_BINARY).canRead()) {
-			if (! new File(GET_INTERFACES_LINUX_BINARY_ALT).canRead()) {
-				logger.warning("Could not find binaries " + GET_INTERFACES_LINUX_BINARY +
-						" or " + GET_INTERFACES_LINUX_BINARY_ALT +
-						", unable to read network interface details");
-				return null;
-			}
-			else
-				return GET_INTERFACES_LINUX_BINARY_ALT;
+		for (String binary : GET_INTERFACES_LINUX_BINARY_LOCATIONS) {
+			if (new File(binary).canRead())
+				return binary;
+			triedPaths = triedPaths + " " + binary;
 		}
-		else
-			return GET_INTERFACES_LINUX_BINARY;
+		logger.warning("Could not find ip binary in" + triedPaths + 
+				", unable to read network interface details");
+		return null;
 	}
 
 	/** Executes the command ethtool for the given network interface and returns the output within a HashMap.
@@ -414,6 +434,53 @@ public class LinuxIPCommandHelper {
 		}
 		return options;
 	}
+	
+    /** Returns the IPv4 address of the interface that is used for the default 
+     * route. This is the IPv4 address that can be used for determining the 
+     * prefix for a 6to4 tunneling address.  
+     */
+    public static Inet4Address getOutboundIPv4Address() {
+    	try {
+    		/* loop over all IPv4 routes to find the default route which would
+    		 * be used for establishing a 6to4 tunnel */
+			LinkedList<RouteDetail> routes = LinuxIPCommandHelper.getRouteOutput(false);
+			for (RouteDetail route : routes) {
+				if (route.target.equalsIgnoreCase("default") || route.target.equals("0.0.0.0/0")) {
+					// ok, default route found
+					logger.info("Found default IPv4 route pointing to gateway '" +
+							route.gateway + "' on interface '" + route.iface + "'");
+					if (route.iface == null || route.iface.length() == 0) {
+						logger.warning("Default IPv4 route with empty interface specifier, can't determine outbound interface");
+						continue;
+					}
+					
+					// now try to find the outbound IPv4 address on this interface
+					LinkedList<InterfaceDetail> ifaceDetails = LinuxIPCommandHelper.getIfaceOutput(route.iface);
+					if (ifaceDetails.size() != 1) {
+						logger.severe("Interface " + route.iface + " is listed for IPv4 default route, but can't parse interface details");
+						continue;
+					}
+					InterfaceDetail ifaceDetail = ifaceDetails.peek();
+					for (InetAddressWithNetmask addr : ifaceDetail.addresses) {
+						// only accept non-secondary IPv4 addresses
+						if (addr.address != null && addr.address instanceof Inet4Address &&
+							!addr.markedSecondary) {
+							logger.info("Found outbound IPv4 address " + addr.address +
+									" on interface " + route.iface + 
+									", assuming as the one used for default routing");
+							return (Inet4Address) addr.address;
+						}
+					}
+				}
+			}
+			// when we get here, no default route with associated outbound addreess could be found
+			logger.warning("Unable to find IPv4 default route with outbound IP address");
+			return null;
+		} catch (IOException e) {
+			logger.warning("Unable to query Linux IPv4 main routing table" + e);
+			return null;
+		} 
+    }
 	
 	/** Enable address privacy for all interfaces and potentially try to force reload.
 	 * 
