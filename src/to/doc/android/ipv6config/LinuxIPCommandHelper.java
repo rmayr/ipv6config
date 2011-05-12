@@ -620,4 +620,14 @@ public class LinuxIPCommandHelper {
 			return false;
 		}
 	}
+	
+	public static boolean deleteTunnelInterface(String iface) {
+		return true;
+	}
+	
+	public static boolean create6to4TunnelInterface(String iface, 
+			Inet4Address localIPv4Endpoint, String ipv6Prefix, int mtu) {
+		if (mtu <= 0) mtu = 1430;
+		
+		return true;	}
 }
