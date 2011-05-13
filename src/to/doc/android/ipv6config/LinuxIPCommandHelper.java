@@ -65,15 +65,15 @@ public class LinuxIPCommandHelper {
 		"/system/xbin/ip" };
 
 	/** Command to get and set network interface addresses and options under modern Linux systems. */
-	public final static String GET_INTERFACES_LINUX_COMMAND = " addr";
+	private final static String ADDRESSES_COMMAND = " addr";
 	/** Option to the GET_INTERFACES_LINUX command to select a specific interface. */
-	public final static String GET_INTERFACES_LINUX_SELECTOR = " show dev ";
+	private final static String INTERFACES_SELECTOR = " show dev ";
 	
 	/** Command to get and set routes under modern Linux systems. */
-	public final static String GET_ROUTES_LINUX_COMMAND = " route";
+	private final static String ROUTES_COMMAND = " route";
 	
 	/** Option to select only IPv6 addresses/routes. */
-	public final static String OPTION_IPv6_ONLY = " -6 ";
+	private final static String OPTION_IPv6_ONLY = " -6 ";
 
 	/** Command to get and set Ethernet interface details under Linux systems. */
 	public final static String ETHTOOL_COMMAND = "/usr/sbin/ethtool ";
@@ -94,13 +94,26 @@ public class LinuxIPCommandHelper {
 	private final static String CONF_INTERFACES_DEFAULT = "default";
 
 	/** Command to get and set network interface status under modern Linux systems (up/down mostly). */
-	public final static String SET_INTERFACE = "/system/bin/ip link set";
+	private final static String SET_INTERFACE = " link set ";
 	/** Option to set network interface up. */
-	private final static String UP = "up";
+	private final static String UP = " up";
 	/** Option to set network interface down. */
-	private final static String DOWN = "down";
+	private final static String DOWN = " down";
+	/** Option to add network interface / addresses / routes. */
+	private final static String ADD = " add ";
+	/** Option to delete network interface / addresses / routes. */
+	private final static String DEL = " del ";
+	/** Option to set network interface MTU. */
+	private final static String MTU = " mtu ";
 	/** Delay between setting an interface down and up to force its IPv6 address to be reset (in milliseconds). */
 	public final static int INTERFACE_DOWN_UP_DELAY = 100;
+
+	/** Command to the "ip" binary to delete a tunnel interface under modern Linux systems. */
+	private final static String DELETE_TUNNEL_INTERFACE = " tunnel" + DEL;
+	/** Command to the "ip" binary to create a tunnel interface under modern Linux systems. */
+	private final static String ADD_TUNNEL_INTERFACE = " tunnel" + ADD;
+	private final static String ADD_TUNNEL_INTERFACE_OPTIONS_1 = " mode sit remote any local ";
+	private final static String ADD_TUNNEL_INTERFACE_OPTIONS_2 = " ttl 255 ";
 
 	/** This class represents an (IPv4 or IPv6) address with an optional network mask. */
 	public static class InetAddressWithNetmask {
@@ -173,14 +186,13 @@ public class LinuxIPCommandHelper {
 	public static LinkedList<InterfaceDetail> getIfaceOutput(String iface) throws IOException {
 		logger.finer("Acquiring interface details for iface " + iface);
 		
-		String cmd = getIPCommandLocation() + GET_INTERFACES_LINUX_COMMAND;
+		String cmd = getIPCommandLocation() + ADDRESSES_COMMAND;
 		StringTokenizer lines = null;
 		LinkedList<InterfaceDetail> list = new LinkedList<InterfaceDetail>();
 		
 		try {
-			lines =	new StringTokenizer(Command.executeCommand(
-						cmd + (iface != null ? 
-						 (GET_INTERFACES_LINUX_SELECTOR + iface) : ""),
+			lines =	new StringTokenizer(Command.executeCommand(cmd + 
+						(iface != null ? (INTERFACES_SELECTOR + iface) : ""),
 						false, false, null), "\n");
 		} catch (Exception e) {
 			if (iface == null)
@@ -323,7 +335,7 @@ public class LinuxIPCommandHelper {
 	public static LinkedList<RouteDetail> getRouteOutput(boolean queryIPv6) throws IOException {
 		logger.finer("Acquiring route details");
 		
-		String cmd = getIPCommandLocation() + GET_ROUTES_LINUX_COMMAND +
+		String cmd = getIPCommandLocation() + ROUTES_COMMAND +
 			(queryIPv6 ? OPTION_IPv6_ONLY : "");
 		StringTokenizer lines = null;
 		LinkedList<RouteDetail> list = new LinkedList<RouteDetail>();
@@ -554,11 +566,13 @@ public class LinuxIPCommandHelper {
 	
 	/** Tries to force the interface to reset its addresses by setting it down and then up. */
 	public static boolean forceAddressReload(String iface) {
+		String cmd = getIPCommandLocation() + SET_INTERFACE + iface + " ";
+
 		try {
-			if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + DOWN, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, cmd + DOWN, null, null) == 0) {
 				// wait just a little for the interface to properly go down
 				Thread.sleep(INTERFACE_DOWN_UP_DELAY);
-				if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + UP, null, null) == 0) {
+				if (Command.executeCommand(SH_COMMAND, true, cmd + UP, null, null) == 0) {
 					logger.finer("Reset interface " + iface + " to force address reload");
 					return true;
 				}
@@ -584,13 +598,15 @@ public class LinuxIPCommandHelper {
 		boolean ret = true;
 		LinkedList<String> downedIfaces = new LinkedList<String>();
 		
+		String cmd = getIPCommandLocation() + SET_INTERFACE;
+		
 		try {
 			// first set all interfaces down
 			for (String iface : ifaces) {
 				// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
 				File configDir = new File(IPV6_CONFIG_TREE + iface);
 				if (configDir.isDirectory() && !iface.equals(CONF_INTERFACES_ALL) && !iface.equals(CONF_INTERFACES_DEFAULT)) {
-					if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + DOWN, null, null) == 0)
+					if (Command.executeCommand(SH_COMMAND, true, cmd + iface + DOWN, null, null) == 0)
 						downedIfaces.add(iface);
 					else {
 						logger.warning("Unable to set interface " + iface + " down, will not try to set it up again");
@@ -604,7 +620,7 @@ public class LinuxIPCommandHelper {
 			
 			// and start all those again that were set down
 			for (String iface : downedIfaces) {
-				if (Command.executeCommand(SH_COMMAND, true, SET_INTERFACE + " " + iface + " " + UP, null, null) == 0) 
+				if (Command.executeCommand(SH_COMMAND, true, cmd + iface + UP, null, null) == 0) 
 					logger.finer("Reset interface " + iface + " to force address reload");
 				else {
 					logger.warning("Set interface " + iface + " down but was unable to set it up again");
@@ -621,13 +637,97 @@ public class LinuxIPCommandHelper {
 		}
 	}
 	
+	/** Delete a tunnel interface that was previously created.
+	 * 
+	 * @param iface The interface name to delete.
+	 * @return true if successfully deleted, false otherwise.
+	 */
 	public static boolean deleteTunnelInterface(String iface) {
-		return true;
+		String cmd = getIPCommandLocation() + DELETE_TUNNEL_INTERFACE + iface;
+
+		try {
+			if (Command.executeCommand(SH_COMMAND, true, cmd, null, null) == 0) { 
+				logger.finer("Deleted tunnel interface " + iface);
+				return true;
+			}
+			else {
+				logger.warning("Unable to delete tunnel interface " + iface + ", it probably has not been created beforehand");
+				return false;
+			}
+		} catch (IOException e) {
+			logger.severe("Unable to execute system command, tunnel interface not deleted (access privileges missing?) " + e);
+			return false;
+		} catch (InterruptedException e) {
+			return false;
+		}
 	}
 	
+	/** Create a new 6to4 tunnel interface.
+	 * 
+	 * @param iface The interface name to create.
+	 * @param localIPv4Endpoint The local IPv4 endpoint address to assign to the tunnel.
+	 * @param ipv6Prefix The 6to4 prefix derived from the endpoint address that will be
+	 *                   used to create the IPv6 address.
+	 * @param mtu The maximum transfer unit for the new interface. If a value 
+	 *            <=0 is passed as argument, a default of 1430 will be used.
+	 * @return true if successfully created and addresses and routes added, false otherwise.
+	 */
 	public static boolean create6to4TunnelInterface(String iface, 
 			Inet4Address localIPv4Endpoint, String ipv6Prefix, int mtu) {
 		if (mtu <= 0) mtu = 1430;
-		
-		return true;	}
+
+		String cmdTunnel = getIPCommandLocation() + ADD_TUNNEL_INTERFACE +
+			iface + ADD_TUNNEL_INTERFACE_OPTIONS_1 + 
+			localIPv4Endpoint.getHostAddress() + 
+			ADD_TUNNEL_INTERFACE_OPTIONS_2;
+		String cmdSetUp = getIPCommandLocation() + SET_INTERFACE + iface + UP + MTU + mtu;
+		/* Experienced IPv6 users will wonder why the netmask for sit0 is /16, not /64; 
+		 * by setting the netmask to /16, you instruct your system to send packets 
+		 * directly to the IPv4 address of other 6to4 users; if it was /64, you'd send 
+		 * packets via the nearest relay router, increasing latency. */
+		String cmd6to4Addr = getIPCommandLocation() + OPTION_IPv6_ONLY + 
+			ADDRESSES_COMMAND + ADD + ipv6Prefix + "::/16 dev " + iface;
+		String cmd6to4Route1 = getIPCommandLocation() + OPTION_IPv6_ONLY +
+			ROUTES_COMMAND + ADD + " 0:0:0:0:0:ffff::/96 dev " + iface + " metric 1";
+		String cmd6to4Route2 = getIPCommandLocation() + OPTION_IPv6_ONLY +
+			ROUTES_COMMAND + ADD + " 2000::/3 via ::192.88.99.1 dev " + iface + " metric 1";
+
+		try {
+			logger.finer("Trying to create 6to4 tunnel interface " + iface + 
+					" with local endpoint " + localIPv4Endpoint.getHostAddress() +
+					" for prefix " + ipv6Prefix + " with MTU " + mtu);
+			
+			if (Command.executeCommand(SH_COMMAND, true, cmdTunnel, null, null) == 0) {
+				logger.severe("Unable to create tunnel interface " + iface);
+				return false;
+			}
+			if (Command.executeCommand(SH_COMMAND, true, cmdSetUp, null, null) == 0) {
+				logger.severe("Unable to set tunnel interface " + iface + " up with MTU " + mtu);
+				return false;
+			}
+			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Addr, null, null) == 0) {
+				logger.severe("Unable to add 6to4 address " + ipv6Prefix + 
+						" to tunnel interface " + iface);
+				return false;
+			}
+			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route1, null, null) == 0) {
+				logger.severe("Unable to add 6to4 route 1 to tunnel interface " + iface);
+				return false;
+			}
+			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route2, null, null) == 0) {
+				logger.severe("Unable to add 6to4 route 1 to tunnel interface " + iface);
+				return false;
+			}
+			
+			logger.info("Successfully created 6to4 tunnel interface " + iface + 
+					" with local endpoint " + localIPv4Endpoint.getHostAddress() +
+					" for prefix " + ipv6Prefix + " with MTU " + mtu);
+			return true;
+		} catch (IOException e) {
+			logger.severe("Unable to execute system command, tunnel interface not deleted (access privileges missing?) " + e);
+			return false;
+		} catch (InterruptedException e) {
+			return false;
+		}
+	}
 }
