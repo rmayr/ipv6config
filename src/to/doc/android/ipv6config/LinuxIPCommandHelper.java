@@ -33,8 +33,10 @@ public class LinuxIPCommandHelper {
 	/** Our logger for this class. */
 	private final static Logger logger = java.util.logging.Logger.getLogger(LinuxIPCommandHelper.class.getName());
 
-	/** Identifies an Ethernet interface and, funnily enough, also the GPRS/UMTS interfaces. */
+	/** Identifies an Ethernet interface and, funnily enough, sometimes also the GPRS/UMTS interfaces. */
 	private final static String ETHERNET_INTERFACE = "link/ether";
+	/** Identifies an Ethernet interface and, funnily enough, sometimes also the GPRS/UMTS interfaces. */
+	private final static String PPP_INTERFACE = "link/ppp";
 	
 	/** Identifier for starting the MTU option in the interface line. */
 	private final static String INTERFACE_MTU = "mtu";
@@ -95,7 +97,7 @@ public class LinuxIPCommandHelper {
 
 	/** Command to get and set network interface status under modern Linux systems (up/down mostly). */
 	private final static String SET_INTERFACE = " link set ";
-	/** Option to set network interface up. */
+	/** Option to set network interface up.  */
 	private final static String UP = " up";
 	/** Option to set network interface down. */
 	private final static String DOWN = " down";
@@ -103,8 +105,6 @@ public class LinuxIPCommandHelper {
 	private final static String ADD = " add ";
 	/** Option to delete network interface / addresses / routes. */
 	private final static String DEL = " del ";
-	/** Option to set network interface MTU. */
-	private final static String MTU = " mtu ";
 	/** Delay between setting an interface down and up to force its IPv6 address to be reset (in milliseconds). */
 	public final static int INTERFACE_DOWN_UP_DELAY = 100;
 
@@ -148,7 +148,8 @@ public class LinuxIPCommandHelper {
 	public static class InterfaceDetail {
 		public String name;
 		public String mac;
-		public boolean isUp;
+		public boolean isUp = false;
+		public boolean isPPP = false;
 		public int mtu;
 		public LinkedList<InetAddressWithNetmask> addresses = new LinkedList<InetAddressWithNetmask>();
 		
@@ -214,12 +215,13 @@ public class LinuxIPCommandHelper {
 			String line = lines.nextToken();
 			logger.finest("getIfaceOutput: parsing line '" + line + "'");
 			if (! Character.isWhitespace(line.charAt(0))) {
+				// lines that start without whitespace start a new block
 				logger.finest("getIfaceOutput: start of new block");
 				
-				// lines that start without whitespace start a new block
-				// thus write the old one (if set) - only link/ether for now
+				// starting a new block, flush the last interface (if we have one) 
+				// only link/ether and link/ppp for now
 				// in the future, might skip the cur.mac != null check to include all interface types
-				if (cur != null && cur.mac != null) {
+				if (cur != null && (cur.mac != null || cur.isPPP)) {
 					logger.finest("getIfaceOutput: adding to list: " + cur.name);
 					list.add(cur);
 				}
@@ -266,7 +268,7 @@ public class LinuxIPCommandHelper {
 						}
 					}
 				}
-				logger.finer("Read interface line: " + cur.name + ", " + cur.mtu + ", " + cur.isUp);
+				logger.finest("Read interface line: " + cur.name + ", " + cur.mtu + ", " + cur.isUp);
 			}
 			else {
 				logger.finest("getIfaceOutput: block continued");
@@ -275,45 +277,54 @@ public class LinuxIPCommandHelper {
 				while (options.hasMoreTokens()) {
 					String opt = options.nextToken();
 					logger.finest("getIfaceOutput: trying to parse option '" + opt + "'");
+					
+					// link/ppp lines have no further "values", so need to check here
+					if (opt.equals(PPP_INTERFACE)) {
+						cur.isPPP = true;
+						logger.finest("getIfaceOutput: found PPP interface " + cur.name);
+					}
+					
 					// "lo" marks the end of line, but also check explicitly
 					if (opt.equals("lo") || !options.hasMoreTokens()) break;
 					
 					String value = options.nextToken();
 					logger.finest("getIfaceOutput: trying to parse value '" + value + "'");
 
-						if (opt.equals(ETHERNET_INTERFACE)) {
-							cur.mac = value;
-							logger.finest("getIfaceOutput: found mac " + cur.mac
-									+ " for " + cur.name);
-						} else if (opt.equals(ADDRESS_IPV4) || opt.equals(ADDRESS_IPV6)) {
-							InetAddressWithNetmask addr = new InetAddressWithNetmask();
-							if (value.contains("/")) {
-								addr.address = InetAddress.getByName(value.substring(0, value.indexOf('/')));
-								addr.subnetLength = Integer.parseInt(value.substring(value.indexOf('/')+1));
-							}
-							else {
-								addr.address = InetAddress.getByName(value);
-								addr.subnetLength = addr.address instanceof Inet4Address ? 32 : 128;
-							}
-							
-							// try to find additional modifiers
-							if (line.indexOf(ADDRESS_MODIFIER_SECONDARY) >= 0)
-								addr.markedSecondary = true;
-							if (line.indexOf(ADDRESS_MODIFIER_TEMPORARY) >= 0)
-								addr.markedTemporary = true;
-							if (line.indexOf(ADDRESS_MODIFIER_DEPRECATED) >= 0)
-								addr.markedDeprecated = true;
-							
-							cur.addresses.add(addr);
-							logger.finest("getIfaceOutput: found IP address " + addr
-									+ " for " + cur.name);
+					if (opt.equals(ETHERNET_INTERFACE)) {
+						cur.mac = value;
+						logger.finest("getIfaceOutput: found mac " + cur.mac
+								+ " for " + cur.name);
+					} else if (opt.equals(ADDRESS_IPV4) || opt.equals(ADDRESS_IPV6)) {
+						InetAddressWithNetmask addr = new InetAddressWithNetmask();
+						if (value.contains("/")) {
+							addr.address = InetAddress.getByName(value.substring(0, value.indexOf('/')));
+							addr.subnetLength = Integer.parseInt(value.substring(value.indexOf('/')+1));
 						}
+						else {
+							addr.address = InetAddress.getByName(value);
+							addr.subnetLength = addr.address instanceof Inet4Address ? 32 : 128;
+						}
+							
+						// try to find additional modifiers
+						if (line.indexOf(ADDRESS_MODIFIER_SECONDARY) >= 0)
+							addr.markedSecondary = true;
+						if (line.indexOf(ADDRESS_MODIFIER_TEMPORARY) >= 0)
+							addr.markedTemporary = true;
+						if (line.indexOf(ADDRESS_MODIFIER_DEPRECATED) >= 0)
+							addr.markedDeprecated = true;
+							
+						cur.addresses.add(addr);
+						logger.finest("getIfaceOutput: found IP address " + addr
+								+ " for " + cur.name);
+					}
 				}
 			}
 		}		
 		// save the last block info
-		if (cur != null && cur.mac != null)
+		if (cur != null && (cur.mac != null || cur.isPPP)) {
+			logger.finest("getIfaceOutput: adding to list: " + cur.name);
 			list.add(cur);
+		}
 		return list;
 	}
 
@@ -469,7 +480,9 @@ public class LinuxIPCommandHelper {
 					// now try to find the outbound IPv4 address on this interface
 					LinkedList<InterfaceDetail> ifaceDetails = LinuxIPCommandHelper.getIfaceOutput(route.iface);
 					if (ifaceDetails.size() != 1) {
-						logger.severe("Interface " + route.iface + " is listed for IPv4 default route, but can't parse interface details");
+						logger.severe("Interface " + route.iface + " is listed for IPv4 default route, " +
+								"but can't parse interface details (got " + ifaceDetails.size() +
+								" entries instead of 1)");
 						continue;
 					}
 					InterfaceDetail ifaceDetail = ifaceDetails.peek();
@@ -680,7 +693,8 @@ public class LinuxIPCommandHelper {
 			iface + ADD_TUNNEL_INTERFACE_OPTIONS_1 + 
 			localIPv4Endpoint.getHostAddress() + 
 			ADD_TUNNEL_INTERFACE_OPTIONS_2;
-		String cmdSetUp = getIPCommandLocation() + SET_INTERFACE + iface + UP + MTU + mtu;
+		String cmdSetUp = getIPCommandLocation() + SET_INTERFACE + iface + UP + 
+			" " + INTERFACE_MTU + " " + mtu;
 		/* Experienced IPv6 users will wonder why the netmask for sit0 is /16, not /64; 
 		 * by setting the netmask to /16, you instruct your system to send packets 
 		 * directly to the IPv4 address of other 6to4 users; if it was /64, you'd send 

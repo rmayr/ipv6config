@@ -50,22 +50,23 @@ public class IPv6AddressesHelper {
 	public final static String GET_OUTBOUND_IP_URL = 
 		GET_OUTBOUND_IP_URL_PROTOCOL + GET_OUTBOUND_IP_SERVER + ":" + GET_OUTBOUND_IP_PORT + GET_OUTBOUND_IP_URL_PATH;
 
-	/** This method tries to retrieve the IPv6 address visible to servers by 
+	/** This method tries to retrieve the IPv6/IPv4 address visible to servers by 
      * querying https://doc.to/getip/.
      * 
      * Attention: this may take a few seconds - don't do it in the foreground!
      * 
-     * @return the IPv6 address of this host that is used to connect to other
-     *         hosts or null if IPv6 connections to https://doc.to are not
+     * @param queryIPv6 If true, connects via IPv6. If false, connects via IPv4. 
+     * @return the IPv6/IPv4 address of this host that is used to connect to other
+     *         hosts or null if IPv6/IPv4 connections to https://doc.to are not
      *         possible.
      */
-    public static String getOutboundIPv6Address() {
+    public static String getOutboundIPAddress(boolean queryIPv6) {
     	try {
     		// first resolve the host's AAAA entries to make sure to connect to the host via IPv6
 			InetAddress[] serverAddrs = InetAddress.getAllByName(GET_OUTBOUND_IP_SERVER);
-			Inet6Address server = null;
+			InetAddress server = null;
 			for (InetAddress addr : serverAddrs) {
-				if (addr instanceof Inet6Address) {
+				if (queryIPv6 && addr instanceof Inet6Address) {
 					logger.log(Level.FINE, "Resolved " + GET_OUTBOUND_IP_SERVER + " to IPv6 address " + addr.getHostAddress());
 					if (server == null)
 						server = (Inet6Address) addr;
@@ -74,15 +75,25 @@ public class IPv6AddressesHelper {
 								GET_OUTBOUND_IP_SERVER + ", but expected only one. Will use the one found first " +
 								server.getHostAddress() + " and ignore the one found now " + addr.getHostAddress());
 				}
+				else if (!queryIPv6 && addr instanceof Inet4Address) {
+					logger.log(Level.FINE, "Resolved " + GET_OUTBOUND_IP_SERVER + " to IPv4 address " + addr.getHostAddress());
+					if (server == null)
+						server = (Inet4Address) addr;
+					else
+						logger.log(Level.WARNING, "Found multiple IPv4 addresses for host " + 
+								GET_OUTBOUND_IP_SERVER + ", but expected only one. Will use the one found first " +
+								server.getHostAddress() + " and ignore the one found now " + addr.getHostAddress());
+				} 
 			}
 			if (server == null) {
-				logger.log(Level.WARNING, "Could not resolve host " + GET_OUTBOUND_IP_SERVER + 
-						" to IPv6 address, therefore unable to determine externally visible IPv6 address of this client");
+				logger.log(Level.WARNING, "Could not resolve host " + GET_OUTBOUND_IP_SERVER + " to " + 
+						(queryIPv6 ? "IPv6" : "IPv4" ) + " address, therefore unable to determine externally visible IPv6 address of this client");
 				return null;
 			}
 			
 			// now that we have the IPv6 address to connect to, query the URL
-			String url = GET_OUTBOUND_IP_URL_PROTOCOL + "[" + server.getHostAddress() + "]" + 
+			String url = GET_OUTBOUND_IP_URL_PROTOCOL + 
+				(queryIPv6 ? ("[" + server.getHostAddress() + "]") : server.getHostAddress()) + 
 				":" + GET_OUTBOUND_IP_PORT + GET_OUTBOUND_IP_URL_PATH;
 			logger.log(Level.FINER, "Querying URL " + url + " for outbound IPv6 address");
 			return queryServerForOutboundAddress(url);
@@ -256,9 +267,9 @@ public class IPv6AddressesHelper {
     		System.out.println("Found outbound (locally queried) IPv4 address: " + outboundIPv4Addr.getHostAddress());
     		System.out.println("Derived 6to4 prefix is: " + compute6to4Prefix(outboundIPv4Addr));
     	}
-    	System.out.println("Found outbound (externally visible) IPv4 address: " + queryServerForOutboundAddress(null));
+    	System.out.println("Found outbound (externally visible) IPv4 address: " + getOutboundIPAddress(false));
     	
-    	String outboundIPv6Addr = getOutboundIPv6Address();
+    	String outboundIPv6Addr = getOutboundIPAddress(true);
     	System.out.println("Found outbound (externally visible) IPv6 address: " + outboundIPv6Addr);
     	System.out.println("Address is MAC-derived: " + 
     			isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(outboundIPv6Addr)));

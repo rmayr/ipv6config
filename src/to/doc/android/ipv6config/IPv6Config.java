@@ -12,6 +12,7 @@
 package to.doc.android.ipv6config;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
@@ -40,17 +41,21 @@ import android.widget.TextView.BufferType;
 public class IPv6Config extends Activity {
 	/** This tag is used for Android logging. */
 	public final static String LOG_TAG = "IPv6Config";
-	
+
 	private CheckBox autoStart;
 	private CheckBox enablePrivacy;
+	private CheckBox enable6to4Tunnel;
 	private TextView localAddresses;
-	private TextView globalAddress;
+	private TextView v6GlobalAddress;
+	private TextView v4GlobalAddress;
+	private TextView v4LocalDefaultAddress;
 	
 	private SharedPreferences prefsPrivate;
 
 	protected final static String PREFERENCES_STORE = "IPv6Config";
 	protected final static String PREFERENCE_AUTOSTART = "autostart";
 	protected final static String PREFERENCE_ENABLE_PRIVACY = "enablePrivacyExtensions";
+	protected final static String PREFERENCE_CREATE_TUNNEL = "enable6to4Tunneling";
 	
     /** Called when the activity is first created. */
     @Override
@@ -64,9 +69,13 @@ public class IPv6Config extends Activity {
         autoStart.setChecked(prefsPrivate.getBoolean(PREFERENCE_AUTOSTART, false));
         enablePrivacy = (CheckBox) findViewById(R.id.checkboxEnablePrivacy);
         enablePrivacy.setChecked(prefsPrivate.getBoolean(PREFERENCE_ENABLE_PRIVACY, true));
+        enable6to4Tunnel = (CheckBox) findViewById(R.id.checkBoxEnable6to4Tunnel);
+        enable6to4Tunnel.setChecked(prefsPrivate.getBoolean(PREFERENCE_CREATE_TUNNEL, false));
 
         localAddresses = (TextView) findViewById(R.id.viewLocalAddresses);
-        globalAddress = (TextView) findViewById(R.id.viewGlobalAddress);
+        v6GlobalAddress = (TextView) findViewById(R.id.viewv6GlobalAddress);
+        v4GlobalAddress = (TextView) findViewById(R.id.viewv4GlobalAddress);
+        v4LocalDefaultAddress = (TextView) findViewById(R.id.viewv4LocalDefaultAddress);
 
         displayLocalAddresses();
     }
@@ -76,6 +85,12 @@ public class IPv6Config extends Activity {
     public void onPause() {
 		savePreferences();
 		super.onPause();
+    }
+    
+    @Override
+    public void onResume() {
+        super.onResume();
+        displayLocalAddresses();
     }
     
     /** Called when the activity menu is created */
@@ -101,36 +116,55 @@ public class IPv6Config extends Activity {
     	Editor prefsPrivateEditor = prefsPrivate.edit();
 		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
 		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+		prefsPrivateEditor.putBoolean(PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
 		prefsPrivateEditor.commit();
     }
     
     /** A helper class to query the doc.to server for the externally visible 
      * IPv6 address asynchronously.
      */
-    private class DetermineAddressTask extends AsyncTask<Void, Void, String> {
+    private class DetermineAddressTask extends AsyncTask<Void, Void, String[]> {
     	/** This method will be executed in a background thread when execute() is called. */
-    	protected String doInBackground(Void... noParms) {
+    	protected String[] doInBackground(Void... noParms) {
     		// this can take a few seconds
-        	return IPv6AddressesHelper.getOutboundIPv6Address();
+    		String globalIPv4Addr = IPv6AddressesHelper.getOutboundIPAddress(false);
+    		String globalIPv6Addr = IPv6AddressesHelper.getOutboundIPAddress(true);
+    		Log.w(LOG_TAG, "v6Global = " + globalIPv6Addr);
+        	return new String[] {globalIPv4Addr, globalIPv6Addr};
     	}
     	
     	/** This method will be executed in the UI thread after doInBackground finishes. */
-    	protected void onPostExecute(String outboundIPv6Addr) {
-    		String text = outboundIPv6Addr;
+    	protected void onPostExecute(String[] outboundAddrs) {
+    		String v4Text = outboundAddrs[0];
+    		if (v4Text == null) {
+    			v4GlobalAddress.setTextColor(Color.YELLOW);
+    			v4Text = getString(R.string.determineFailed);
+    		} else if (v4Text.equals(v4LocalDefaultAddress.getText())) {
+				v4Text += "\n" + getString(R.string.ipv4GlobalAddressMatchesLocal);
+				v4GlobalAddress.setTextColor(Color.BLUE);
+				enable6to4Tunnel.setEnabled(true);
+    		} else {
+				v4Text += "\n" + getString(R.string.ipv4GlobalAddressNotMatchesLocal);
+				v4GlobalAddress.setTextColor(Color.RED);
+				enable6to4Tunnel.setEnabled(false);
+    		}
+    		v4GlobalAddress.setText(v4Text);
+    		
+    		String v6Text = outboundAddrs[1];
         	try {
-        		if (outboundIPv6Addr == null) {
-        			globalAddress.setTextColor(Color.YELLOW);
-        			text = "Unable to determine address, resolver server not reachable";
-        		} else if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(outboundIPv6Addr))) {
-    				text += "\nWARNING: privacy extensions not in use, device can be globally tracked";
-    				globalAddress.setTextColor(Color.RED);
+        		if (v6Text == null) {
+        			v6GlobalAddress.setTextColor(Color.YELLOW);
+        			v6Text = getString(R.string.determineFailed);
+        		} else if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(v6Text))) {
+    				v6Text += "\n" + getString(R.string.ipv6GlobalAddressIsMacDerived);
+    				v6GlobalAddress.setTextColor(Color.RED);
     			}
     			else
-    				globalAddress.setTextColor(Color.GREEN);
+    				v6GlobalAddress.setTextColor(Color.GREEN);
     		} catch (UnknownHostException e) {
-    			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + outboundIPv6Addr, e);
+    			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + v6Text, e);
     		}
-    		globalAddress.setText(text);
+    		v6GlobalAddress.setText(v6Text);
     	}
     }
 
@@ -140,8 +174,10 @@ public class IPv6Config extends Activity {
     	displayLocalAddresses();
 
     	// this can take a few seconds, so do it asynchronously
-    	globalAddress.setTextColor(Color.LTGRAY);
-    	globalAddress.setText("Determining address...");
+    	v6GlobalAddress.setTextColor(Color.LTGRAY);
+    	v6GlobalAddress.setText(R.string.determining);
+    	v4GlobalAddress.setTextColor(Color.LTGRAY);
+    	v4GlobalAddress.setText(R.string.determining);
     	new DetermineAddressTask().execute();
     }
     
@@ -176,6 +212,13 @@ public class IPv6Config extends Activity {
     }
     
     public void displayLocalAddresses() {
+    	// try to determine local address associated with default route
+    	Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
+    	if (outboundIPv4Addr != null)
+    		v4LocalDefaultAddress.setText(outboundIPv4Addr.getHostAddress());
+    	else
+    		v4LocalDefaultAddress.setText(R.string.determineLocalFailed);
+    	
         // doesn't work on Android < 3.0
     	//getLocalAddresses();
     	
