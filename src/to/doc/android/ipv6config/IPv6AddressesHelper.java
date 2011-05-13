@@ -39,6 +39,7 @@ public class IPv6AddressesHelper {
 	 * connect via IPv6.
 	 */
 	public final static String GET_OUTBOUND_IP_SERVER = "doc.to";
+	public final static int GET_OUTBOUND_IP_PORT = 444;
 
 	public final static String GET_OUTBOUND_IP_URL_PROTOCOL = "https://";
 	public final static String GET_OUTBOUND_IP_URL_PATH = "/getip/";
@@ -47,7 +48,7 @@ public class IPv6AddressesHelper {
 	 * the client when connecting to Internet services.
 	 */
 	public final static String GET_OUTBOUND_IP_URL = 
-		GET_OUTBOUND_IP_URL_PROTOCOL + GET_OUTBOUND_IP_SERVER + GET_OUTBOUND_IP_URL_PATH;
+		GET_OUTBOUND_IP_URL_PROTOCOL + GET_OUTBOUND_IP_SERVER + ":" + GET_OUTBOUND_IP_PORT + GET_OUTBOUND_IP_URL_PATH;
 
 	/** This method tries to retrieve the IPv6 address visible to servers by 
      * querying https://doc.to/getip/.
@@ -81,7 +82,8 @@ public class IPv6AddressesHelper {
 			}
 			
 			// now that we have the IPv6 address to connect to, query the URL
-			String url = GET_OUTBOUND_IP_URL_PROTOCOL + "[" + server.getHostAddress() + "]" + GET_OUTBOUND_IP_URL_PATH;
+			String url = GET_OUTBOUND_IP_URL_PROTOCOL + "[" + server.getHostAddress() + "]" + 
+				":" + GET_OUTBOUND_IP_PORT + GET_OUTBOUND_IP_URL_PATH;
 			logger.log(Level.FINER, "Querying URL " + url + " for outbound IPv6 address");
 			return queryServerForOutboundAddress(url);
 		} 
@@ -100,6 +102,8 @@ public class IPv6AddressesHelper {
      * @return the outbound IP address of this host as seen be the server.
      */
     public static String queryServerForOutboundAddress(String customURL) {
+	    String url = customURL != null ? customURL : GET_OUTBOUND_IP_URL;
+	    
     	try {
 			// setup 1 before querying the URL: enable following HTTP redirects
 			HttpURLConnection.setFollowRedirects(true);
@@ -133,8 +137,10 @@ public class IPv6AddressesHelper {
 		    	});
 			
 		    // finally query the HTTPS URL
-		    String url = customURL != null ? customURL : GET_OUTBOUND_IP_URL;
-			URLConnection conn = new URL(url).openConnection();
+			//URLConnection conn = new URL("https", "[2002:5078:37d:1::19]", 443, GET_OUTBOUND_IP_URL_PATH).openConnection();
+		    URLConnection conn = new URL(url).openConnection();
+			conn.setUseCaches(false);
+			// doesn't seem to be required
 			/*conn.setRequestProperty("User-Agent","Mozilla/5.0 ( compatible ) ");
 			conn.setRequestProperty("Accept","[star]/[star]");*/
 			logger.log(Level.FINE, "Connecting to URL " + url);
@@ -168,10 +174,10 @@ public class IPv6AddressesHelper {
 			return null;
     	}
     	catch (MalformedURLException e) {
-			logger.log(Level.SEVERE, "Internal error: URL deemed invalid " + GET_OUTBOUND_IP_URL, e);
+			logger.log(Level.SEVERE, "Internal error: URL deemed invalid " + url, e);
 			return null;
 		} catch (IOException e) {
-			logger.log(Level.WARNING, "Unable to connect to URL " + GET_OUTBOUND_IP_URL + 
+			logger.log(Level.WARNING, "Unable to connect to URL " + url + 
 					" and/or host " + GET_OUTBOUND_IP_SERVER, e);
 			return null;
 		} catch (NoSuchAlgorithmException e) {
