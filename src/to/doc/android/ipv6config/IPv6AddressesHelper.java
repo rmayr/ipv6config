@@ -52,6 +52,8 @@ public class IPv6AddressesHelper {
 	 * connect via IPv6.
 	 */
 	public final static String GET_OUTBOUND_IP_SERVER = "doc.to";
+	public final static String GET_OUTBOUND_IP_SERVER_ADDRESSv6 = "2002:5078:37d:1::19";
+	public final static String GET_OUTBOUND_IP_SERVER_ADDRESSv4 = "80.120.3.103";
 	public final static int GET_OUTBOUND_IP_PORT = 444;
 
 	public final static String GET_OUTBOUND_IP_URL_PROTOCOL = "https://";
@@ -99,9 +101,11 @@ public class IPv6AddressesHelper {
 				} 
 			}
 			if (server == null) {
+				if (queryIPv6) server = InetAddress.getByName(GET_OUTBOUND_IP_SERVER_ADDRESSv6);
+				else server = InetAddress.getByName(GET_OUTBOUND_IP_SERVER_ADDRESSv4);
 				logger.log(Level.WARNING, "Could not resolve host " + GET_OUTBOUND_IP_SERVER + " to " + 
-						(queryIPv6 ? "IPv6" : "IPv4" ) + " address, therefore unable to determine externally visible IPv6 address of this client");
-				return null;
+						(queryIPv6 ? "IPv6" : "IPv4" ) + " address, assuming DNS resolver/server to be broken. " +
+						"Will now try with hard-coded address " + server + " although it may have changed.");
 			}
 			
 			// now that we have the IPv6 address to connect to, query the URL
