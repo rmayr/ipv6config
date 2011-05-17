@@ -22,6 +22,9 @@
     <string name="toastDisableSuccess">IPv6Config successfully disabled address privacy</string>
     <string name="toastEnableFailure">"IPv6Config could not enable address privacy on all interfaces, your privacy is NOT guaranteed at this time!"</string>
     <string name="toastDisableFailure">IPv6Config could not disable address privacy on all interfaces, some may still use random addresses</string>
+    <string name="toast6to4Success">IPv6Config successfully configured IPv6 6to4 tunnel</string>
+    <string name="toast6to4Failure">IPv6Config could not configure IPv6 6to4 tunnel</string>
+    <string name="toast6to4AddressMismatch">IPv6Config tried to configure IPv6 6to4 tunnel, but IPv4 addresses not compatible</string>
     <string name="aboutText">Copyright (C) René Mayrhofer (2011)\nIPv6Config allows to modify kernel settings to configure the Linux IPv6 stack, most notably to enable IPv6 address privacy extensions. See http://www.mayrhofer.eu.org/android-ipv6config for details.\n\nThis application is published as open source under the terms of the GNU General Public License (GPL) version 3. With the exception of the application icons, it may be modified and redistributed as long as the modified source code is also made available under this license.\n\nIcons designed by Doris Mayrhofer.</string>
     <string name="create6to4Tunnel">Create (6to4) IPv6 tunnel when no native default route is available</string>
 </resources>

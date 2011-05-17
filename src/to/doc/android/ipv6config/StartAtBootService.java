@@ -26,6 +26,7 @@ public class StartAtBootService extends Service
 	        
 	        boolean autoStart = prefsPrivate.getBoolean(IPv6Config.PREFERENCE_AUTOSTART, false);
 	        boolean enablePrivacy = prefsPrivate.getBoolean(IPv6Config.PREFERENCE_ENABLE_PRIVACY, false);
+	        boolean enable6to4Tunnel = prefsPrivate.getBoolean(IPv6Config.PREFERENCE_CREATE_TUNNEL, false);
 	        
 	        Log.w(IPv6Config.LOG_TAG, "Set to autostart: " + autoStart);
 	        Log.w(IPv6Config.LOG_TAG, "Set to enable privacy: " + enablePrivacy);
@@ -33,7 +34,8 @@ public class StartAtBootService extends Service
 	        if (autoStart) {
 	        	Log.w(IPv6Config.LOG_TAG, "Now enabling address privacy on all currently known interfaces, this might take a few seconds...");
 	        	// only force reloading addresses when we enable privacy, not when we explicitly disable it
-	        	IPv6Config.applySettingsWithGuiFeedback(getApplicationContext(), enablePrivacy, enablePrivacy);
+	        	IPv6Config.applySettingsWithGuiFeedback(getApplicationContext(), 
+	        			enablePrivacy, enablePrivacy, enable6to4Tunnel);
 	        }
 
 	    	// we only need to apply the settings once, they will remain in the kernel space

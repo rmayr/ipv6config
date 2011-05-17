@@ -1,3 +1,14 @@
+/*****************************************************************************
+ *  Project: Android IPv6Config
+ *  Description: Android application to change IPv6 kernel configuration
+ *  Author: René Mayrhofer
+ *  Copyright: René Mayrhofer, 2011-2011
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 
+ * as published by the Free Software Foundation.
+ *****************************************************************************/
+
 package to.doc.android.ipv6config;
 
 import java.io.BufferedReader;
@@ -33,6 +44,8 @@ public class IPv6AddressesHelper {
 	/** Our logger for this class. */
 	private final static Logger logger = java.util.logging.Logger.getLogger(IPv6AddressesHelper.class.getName());
 
+	public final static String IPv6_6to4_TUNNEL_INTERFACE_NAME = "sit6to4";
+	
 	/** This is the host queried for the externally visible IPv6 address of 
 	 * the client when connecting to Internet services. The host name is
 	 * resolved to IPv6 addresses (AAAA DNS entries) to make sure that we

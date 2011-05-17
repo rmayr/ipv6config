@@ -346,15 +346,14 @@ public class LinuxIPCommandHelper {
 	public static LinkedList<RouteDetail> getRouteOutput(boolean queryIPv6) throws IOException {
 		logger.finer("Acquiring route details");
 		
-		String cmd = getIPCommandLocation() + ROUTES_COMMAND +
-			(queryIPv6 ? OPTION_IPv6_ONLY : "");
+		String cmd = getIPCommandLocation() + (queryIPv6 ? OPTION_IPv6_ONLY : "") + ROUTES_COMMAND;
 		StringTokenizer lines = null;
 		LinkedList<RouteDetail> list = new LinkedList<RouteDetail>();
 		
 		try {
 			lines =	new StringTokenizer(Command.executeCommand(cmd,	false, false, null), "\n");
 		} catch (Exception e) {
-			logger.log(Level.WARNING, "Tried to parse interface stati for all interfaces, but could not", e);
+			logger.log(Level.WARNING, "Tried to parse routes, but could not", e);
 		}
 		
 		RouteDetail cur = null;
@@ -506,6 +505,43 @@ public class LinuxIPCommandHelper {
 			return null;
 		} 
     }
+    
+    /** Determine if a suitable IPv6 default route is set.
+     * 
+     * @return true if an IPv6 default route can be found, false otherwise.
+     */
+    public static boolean existsIPv6DefaultRoute() {
+    	return getIfacesWithIPv6DefaultRoute().size() > 0;
+    }
+    
+    /** Determine which interfaces have an IPv6 default route set.
+     * 
+     * @return the list of interfaces with an IPv6 default route.
+     */
+    public static LinkedList<String> getIfacesWithIPv6DefaultRoute() {
+    	LinkedList<String> ifaces = new LinkedList<String>();
+		LinkedList<RouteDetail> routes;
+		try {
+			routes = LinuxIPCommandHelper.getRouteOutput(true);
+			for (RouteDetail route : routes) {
+				if (route.target.equalsIgnoreCase("default") || route.target.equals("::/0") ||
+					route.target.equals("2000::/3") // with IPv6, a route prefix of 2000::/3 is currently enough as a default route
+					) {
+					// ok, default route found
+					logger.info("Found default IPv6 route " + route.target + 
+							" pointing to gateway '" + route.gateway + 
+							"' on interface '" + route.iface + "'");
+					ifaces.add(route.iface);
+				}
+			}
+
+			if (ifaces.size() == 0)
+				logger.info("Unable to find any IPv6 default route");
+		} catch (IOException e) {
+			logger.warning("Unable to query Linux IPv4 main routing table" + e);
+		}
+		return ifaces;
+    }
 	
 	/** Enable address privacy for all interfaces and potentially try to force reload.
 	 * 
@@ -521,7 +557,7 @@ public class LinuxIPCommandHelper {
 		
 		boolean ret = true;
 		LinkedList<String> allIfaces = new LinkedList<String>();
-		LinkedList<String> modifiedIfaces = new LinkedList<String>();
+		LinkedList<String> modifiedIfacesToReload = new LinkedList<String>();
 		
 		// include the special "default" and "all" trees
 		allIfaces.add(CONF_INTERFACES_ALL);
@@ -536,18 +572,25 @@ public class LinuxIPCommandHelper {
 		allIfaces.add("ip6tnl0"); // IPv6 in/over IPv4 tunnel
 		allIfaces.add("tiwlan0"); // WLAN interface on Motorola Milestone
 		
+		/* query IPv6 default route so that we only need to force reload on
+		 * those interfaces that are actually used for IPv6 outgoing traffic
+		 */
+		LinkedList<String> ifacesWithIPv6Route = getIfacesWithIPv6DefaultRoute();
+		
 		for (String iface: allIfaces) {
 			File configDir = new File(IPV6_CONFIG_TREE + iface); 
 			// only try to enable if this is indeed known as an IPv6-capable interface to the kernel
 			if (configDir.isDirectory())
-				if (enableIPv6AddressPrivacy(iface, enablePrivacy))
-					modifiedIfaces.add(iface);
+				if (enableIPv6AddressPrivacy(iface, enablePrivacy)) {
+					if (ifacesWithIPv6Route.contains(iface))
+						modifiedIfacesToReload.add(iface);
+				}
 				else
 					ret = false;
 		}
 		
 		if (forceAddressReload)
-			forceAddressReload(modifiedIfaces);
+			forceAddressReload(modifiedIfacesToReload);
 		
 		return ret;
 	}
@@ -711,24 +754,24 @@ public class LinuxIPCommandHelper {
 					" with local endpoint " + localIPv4Endpoint.getHostAddress() +
 					" for prefix " + ipv6Prefix + " with MTU " + mtu);
 			
-			if (Command.executeCommand(SH_COMMAND, true, cmdTunnel, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, cmdTunnel, null, null) != 0) {
 				logger.severe("Unable to create tunnel interface " + iface);
 				return false;
 			}
-			if (Command.executeCommand(SH_COMMAND, true, cmdSetUp, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, cmdSetUp, null, null) != 0) {
 				logger.severe("Unable to set tunnel interface " + iface + " up with MTU " + mtu);
 				return false;
 			}
-			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Addr, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Addr, null, null) != 0) {
 				logger.severe("Unable to add 6to4 address " + ipv6Prefix + 
 						" to tunnel interface " + iface);
 				return false;
 			}
-			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route1, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route1, null, null) != 0) {
 				logger.severe("Unable to add 6to4 route 1 to tunnel interface " + iface);
 				return false;
 			}
-			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route2, null, null) == 0) {
+			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route2, null, null) != 0) {
 				logger.severe("Unable to add 6to4 route 1 to tunnel interface " + iface);
 				return false;
 			}
