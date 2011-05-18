@@ -2,21 +2,22 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    >
-<TextView  
-    android:layout_width="fill_parent" 
-    android:layout_height="wrap_content" android:text="@string/ipv6Address" android:id="@+id/labelLocalAdresses"/>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewLocalAddresses" android:text="@string/notSet"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/labelv4LocalDefaultAddress" android:text="@string/ipv4LocalDefaultAddress"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewv4LocalDefaultAddress" android:text="@string/notSet" android:textStyle="bold"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/labelv6GlobalAddress" android:text="@string/ipv6GlobalAddress"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewv6GlobalAddress" android:text="@string/notSet" android:textStyle="bold"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/labelv4GlobalAddress" android:text="@string/ipv4GlobalAddress"></TextView>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/viewv4GlobalAddress" android:text="@string/notSet" android:textStyle="bold"></TextView>
-<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/determineAddress" android:id="@+id/buttonDetermineAddress" android:onClick="determineAddress"></Button>
-<CheckBox android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/autostart" android:id="@+id/checkboxAutostart"></CheckBox>
-<CheckBox android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ipv6privacy" android:id="@+id/checkboxEnablePrivacy" android:onClick="changeAddressPrivacyState"></CheckBox>
-<CheckBox android:layout_height="wrap_content" android:layout_width="wrap_content" android:id="@+id/checkBoxEnable6to4Tunnel" android:text="@string/create6to4Tunnel" android:enabled="false"></CheckBox>
-<Button android:layout_width="wrap_content" android:layout_height="wrap_content" android:onClick="forceAddressReload" android:id="@+id/buttonForceReload" android:text="@string/forceAddressReload"></Button>
+    android:layout_height="fill_parent">
+    <ScrollView android:layout_width="fill_parent" android:id="@+id/scrollView1" android:layout_height="fill_parent">
+        <LinearLayout android:layout_width="fill_parent" android:id="@+id/linearLayout1" android:orientation="vertical" android:layout_height="wrap_content">
+            <TextView android:id="@+id/labelLocalAdresses" android:text="@string/ipv6Address" android:layout_width="fill_parent" android:layout_height="wrap_content"></TextView>
+            <TextView android:id="@+id/viewLocalAddresses" android:text="@string/notSet" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <TextView android:id="@+id/labelv4LocalDefaultAddress" android:text="@string/ipv4LocalDefaultAddress" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <TextView android:textStyle="bold" android:id="@+id/viewv4LocalDefaultAddress" android:text="@string/notSet" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <TextView android:id="@+id/labelv6GlobalAddress" android:text="@string/ipv6GlobalAddress" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <TextView android:textStyle="bold" android:id="@+id/viewv6GlobalAddress" android:text="@string/notSet" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <TextView android:id="@+id/labelv4GlobalAddress" android:text="@string/ipv4GlobalAddress" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <TextView android:textStyle="bold" android:id="@+id/viewv4GlobalAddress" android:text="@string/notSet" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
+            <Button android:id="@+id/buttonDetermineAddress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/determineAddress" android:onClick="determineAddress"></Button>
+            <CheckBox android:id="@+id/checkboxAutostart" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/autostart"></CheckBox>
+            <CheckBox android:id="@+id/checkboxEnablePrivacy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ipv6privacy" android:onClick="changeAddressPrivacyState"></CheckBox>
+            <CheckBox android:id="@+id/checkBoxEnable6to4Tunnel" android:layout_width="wrap_content" android:enabled="false" android:layout_height="wrap_content" android:text="@string/create6to4Tunnel"></CheckBox>
+            <Button android:id="@+id/buttonForceReload" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/forceAddressReload" android:onClick="forceAddressReload"></Button>
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>
