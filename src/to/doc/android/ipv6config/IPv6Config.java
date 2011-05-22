@@ -35,7 +35,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.TextView.BufferType;
 
 public class IPv6Config extends Activity {
@@ -56,7 +55,7 @@ public class IPv6Config extends Activity {
 	protected final static String PREFERENCE_AUTOSTART = "autostart";
 	protected final static String PREFERENCE_ENABLE_PRIVACY = "enablePrivacyExtensions";
 	protected final static String PREFERENCE_CREATE_TUNNEL = "enable6to4Tunneling";
-	
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,6 +77,13 @@ public class IPv6Config extends Activity {
         v4LocalDefaultAddress = (TextView) findViewById(R.id.viewv4LocalDefaultAddress);
 
         displayLocalAddresses();
+
+        /* and make sure that the service is running so that it registers for
+         * connection change events, but don't let it do anything just now - noop 
+         */
+    	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
+    	serviceCall.putExtra(StartAtBootService.SERVICE_COMMAND_PARAM, StartAtBootService.SERVICE_COMMAND_NOOP);
+   		getApplicationContext().startService(serviceCall);
     }
 
     /** Called when the activity is sent to the background or is terminated. */
@@ -185,8 +191,10 @@ public class IPv6Config extends Activity {
     	Log.d(LOG_TAG, "checkBoxEnablePrivacy clicked/changed status");
 
     	// apply change immediately when clicking the checkbox, but don't reload until forced
-    	applySettingsWithGuiFeedback(getApplicationContext(), enablePrivacy.isChecked(), false,
-    			enable6to4Tunnel.isChecked());
+    	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
+    	serviceCall.putExtra(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+    	serviceCall.putExtra(PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+   		getApplicationContext().startService(serviceCall);
 
     	// and reload address display
     	displayLocalAddresses();
@@ -195,19 +203,13 @@ public class IPv6Config extends Activity {
     public void forceAddressReload(View v) {
     	Log.d(LOG_TAG, "forceAddressReload clicked");
     	savePreferences();
-	
-		/* Do the major processing in a background service that will 
-		 * terminate after it's done so as not to block the main thread.
-		 */
-    	if (enablePrivacy.isChecked() && autoStart.isChecked())
-    		getApplicationContext().startService( new Intent(getApplicationContext(), StartAtBootService.class));
-    	else
-    		/* TODO in the case that we can't rely on the StartAtBootService (which will only force reload when
-    		 * both fields are checked), we simply call the force in the main thread. This is not optimal, 
-    		 * should also do in the background here - most probably by making StartAtBootService more
-    		 * configurable with service calling parameters? */
-        	applySettingsWithGuiFeedback(getApplicationContext(), 
-        			enablePrivacy.isChecked(), true, enable6to4Tunnel.isChecked());
+
+    	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
+    	serviceCall.putExtra(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+    	serviceCall.putExtra(PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+    	// force an address reload
+    	serviceCall.putExtra(StartAtBootService.SERVICE_COMMAND_PARAM, StartAtBootService.SERVICE_COMMAND_RELOAD);
+   		getApplicationContext().startService(serviceCall);
 
     	// and reload address display
     	displayLocalAddresses();
@@ -244,65 +246,6 @@ public class IPv6Config extends Activity {
 		} catch (IOException e) {
 			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
 					" could not be executed. Missing access rights? ", e);
-		}
-    }
-    
-    public static void applySettingsWithGuiFeedback(Context context, 
-    		boolean enablePrivacy, boolean forceReload,
-    		boolean enable6to4Tunnel) {
-    	if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, forceReload))
-		    Toast.makeText(context, 
-		    		enablePrivacy ? context.getString(R.string.toastEnableSuccess) : context.getString(R.string.toastDisableSuccess), 
-	        		Toast.LENGTH_LONG).show();
-		else
-		    Toast.makeText(context, 
-		    		enablePrivacy ? context.getString(R.string.toastEnableFailure) : context.getString(R.string.toastDisableFailure),
-	        		Toast.LENGTH_LONG).show();
-
-    	if (enable6to4Tunnel) {
-			// determine outbound IPv4 address based on routes
-			Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
-			// determine outbound IPv4 address as seen from the outside
-    		String globalIPv4AddrStr = IPv6AddressesHelper.getOutboundIPAddress(false);
-    		Inet4Address globalIPv4Addr;
-			try {
-				globalIPv4Addr = (Inet4Address) Inet4Address.getByName(globalIPv4AddrStr);
-			} catch (UnknownHostException e) {
-				Log.w(LOG_TAG, "Unable to parse globally visible IPv4 address '" +
-						globalIPv4AddrStr + "', probably unable to contact resolver server", e);
-				globalIPv4Addr = null;
-			} catch (ClassCastException e) {
-				Log.e(LOG_TAG, "Unable to parse globally visible IPv4 address '" +
-						globalIPv4AddrStr + "', unknown reason", e);
-				globalIPv4Addr = null;
-			}
-			
-				// check if we should create a tunnel now (i.e. if there is any IPv6 default route)
-			if (! LinuxIPCommandHelper.existsIPv6DefaultRoute() &&
-				// check if we could create a tunnel now (i.e. if local and global IPv4 addresses match)
-				globalIPv4Addr != null && outboundIPv4Addr.equals(globalIPv4Addr)) {
-				
-				// both yes: do it. first delete tunnel if it exists (if it doesn't, don't mind)
-				LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
-
-				// then create tunnel
-				if (LinuxIPCommandHelper.create6to4TunnelInterface(
-						IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
-						outboundIPv4Addr, 
-						IPv6AddressesHelper.compute6to4Prefix(outboundIPv4Addr), 0))
-				    Toast.makeText(context, 
-				    		context.getString(R.string.toast6to4Success), 
-			        		Toast.LENGTH_LONG).show();
-				else
-				    Toast.makeText(context, 
-				    		context.getString(R.string.toast6to4Failure), 
-			        		Toast.LENGTH_LONG).show();
-			}
-			else if (globalIPv4Addr == null || ! outboundIPv4Addr.equals(globalIPv4Addr)) {
-			    Toast.makeText(context, 
-			    		context.getString(R.string.toast6to4AddressMismatch), 
-		        		Toast.LENGTH_LONG).show();
-			}
 		}
     }
 }
