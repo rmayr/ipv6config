@@ -114,6 +114,37 @@ public class LinuxIPCommandHelper {
 	private final static String ADD_TUNNEL_INTERFACE = " tunnel" + ADD;
 	private final static String ADD_TUNNEL_INTERFACE_OPTIONS_1 = " mode sit remote any local ";
 	private final static String ADD_TUNNEL_INTERFACE_OPTIONS_2 = " ttl 255 ";
+	
+	/** Static initializer: find out where to call the "ip" binary from and remember for future use. */
+	private static String ipBinaryLocation = null;
+	static {
+		String triedPaths = "";
+		// sanity check: can we actually execute our command?
+		for (String binary : GET_INTERFACES_LINUX_BINARY_LOCATIONS) {
+			if (new File(binary).canRead()) {
+				/* second sanity check: does this binary work?
+				 * (E.g. on the Samsung Galaxy S2, there actually is a binary under 
+				 * /system/bin/ip that claims to work, but doesn't).
+				 */
+				try {
+					Command.executeCommand(binary + ADDRESSES_COMMAND, false, false, null);
+					ipBinaryLocation = binary;
+					break;
+				} catch (Exception e) {
+					logger.warning("Found ip binary in " + binary + 
+							", but does not behave as expected. Trying next location.");
+				}
+			}
+			triedPaths = triedPaths + " " + binary;
+		}
+		logger.warning("Could not find ip binary in" + triedPaths + 
+				", unable to read network interface details");
+	}
+	
+	/** Helper to locate a usable "ip" command or null if none is found. */
+	public static String getIPCommandLocation() {
+		return ipBinaryLocation;
+	}
 
 	/** This class represents an (IPv4 or IPv6) address with an optional network mask. */
 	public static class InetAddressWithNetmask {
@@ -371,18 +402,15 @@ public class LinuxIPCommandHelper {
 			while (fields.hasMoreTokens()) {
 				String opt = fields.nextToken().trim();
 				logger.finest("getRouteOutput: trying to parse option '" + opt + "'");
-				
-				String value = fields.nextToken().trim();
-				logger.finest("getRouteOutput: trying to parse value '" + value + "'");
 
-				if (opt.equals(ROUTE_GATEWAY)) {
-					cur.gateway = InetAddress.getByName(value);
+				if (opt.equals(ROUTE_GATEWAY) && fields.hasMoreTokens()) {
+					cur.gateway = InetAddress.getByName(fields.nextToken().trim());
 					logger.finest("getRouteOutput: found gateway " + cur.gateway + " for target " + cur.target);
-				} else if (opt.equals(ROUTE_DEVICE)) {
-					cur.iface = value;
+				} else if (opt.equals(ROUTE_DEVICE) && fields.hasMoreTokens()) {
+					cur.iface = fields.nextToken().trim();
 					logger.finest("getRouteOutput: found interface " + cur.iface + " for target " + cur.target);
 				} else {
-					logger.finest("getRouteOutput: ignoring unknown option '" + opt + "'");
+					logger.finest("getRouteOutput: ignoring unknown option '" + opt + "' or no further field in string. Cannot parse.");
 				}
 			}
 			
@@ -391,21 +419,6 @@ public class LinuxIPCommandHelper {
 		}
 		
 		return list;
-	}
-
-	
-	/** Helper to locate a usable "ip" command or null if none is found. */
-	private static String getIPCommandLocation() {
-		String triedPaths = "";
-		// sanity check: can we actually execute our command?
-		for (String binary : GET_INTERFACES_LINUX_BINARY_LOCATIONS) {
-			if (new File(binary).canRead())
-				return binary;
-			triedPaths = triedPaths + " " + binary;
-		}
-		logger.warning("Could not find ip binary in" + triedPaths + 
-				", unable to read network interface details");
-		return null;
 	}
 
 	/** Executes the command ethtool for the given network interface and returns the output within a HashMap.

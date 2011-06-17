@@ -112,7 +112,7 @@ public class IPv6AddressesHelper {
 			String url = GET_OUTBOUND_IP_URL_PROTOCOL + 
 				(queryIPv6 ? ("[" + server.getHostAddress() + "]") : server.getHostAddress()) + 
 				":" + GET_OUTBOUND_IP_PORT + GET_OUTBOUND_IP_URL_PATH;
-			logger.log(Level.FINER, "Querying URL " + url + " for outbound IPv6 address");
+			logger.log(Level.FINER, "Querying URL " + url + " for outbound " + (queryIPv6 ? "IPv6" : "IPv4" ) + " address");
 			return queryServerForOutboundAddress(url);
 		} 
     	catch (UnknownHostException e) {

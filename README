@@ -44,6 +44,7 @@ This application has been tested successfully on:
  * Google Nexus S GT-i9023 with Android 2.3.3 (rooted with Clockwork Recovery 
    3.0.0.0-crespo, then busybox installed with Busybox Installer app)  
  * HTC Desire with Android 2.2 (unrevoked)
+ * Samsung Galaxy S2 rooted with modified kernel (flashed with Odin)
  * HTC Desire HD with Android 2.3 (Visionary+ r14)
  * Motorola Milestone with Cyanogenmod 7 rc3
 

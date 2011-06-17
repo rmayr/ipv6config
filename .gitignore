@@ -9,5 +9,8 @@
 .directory
 bin/
 gen/
+donate/bin
+donate/gen
 local.properties
 build.properties
+
