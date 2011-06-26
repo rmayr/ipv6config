@@ -368,6 +368,12 @@ public class LinuxIPCommandHelper {
 		public String target;
 		public InetAddress gateway;
 		public String iface;
+		
+		/** This is a helper field used internally for storing the complete 
+		 * route description so that it can be restored after an interface
+		 * reload. 
+		 */
+		protected String fullRouteLine;
 	}
 
 	/** Returns the list of routes in the main routing table. 
@@ -396,6 +402,7 @@ public class LinuxIPCommandHelper {
 			
 			// the first field is always the target
 			cur = new RouteDetail();
+			cur.fullRouteLine = line;
 			cur.target = fields.nextToken();
 
 			// then we get options defined by "dev" or "via" (and others that we ignore)
@@ -468,6 +475,28 @@ public class LinuxIPCommandHelper {
 			//TODO: fill options
 		}
 		return options;
+	}
+	
+	/** Returns the IPv4 default route specification (the full line of 
+	 * "ip route" output) for restoring it later on (e.g. after an interface
+	 * reload) or null if no default route is known.
+	 */
+	public static String getIPv4DefaultRouteSpecification() {
+		LinkedList<RouteDetail> routes;
+		try {
+			routes = LinuxIPCommandHelper.getRouteOutput(false);
+			for (RouteDetail route : routes) {
+				if (route.target.equalsIgnoreCase("default") || route.target.equals("0.0.0.0/0")) {
+					// ok, default route found
+					logger.info("Found default IPv4 route pointing to gateway '" +
+							route.gateway + "' on interface '" + route.iface + "'");
+					return route.fullRouteLine;
+				}
+			}
+		} catch (IOException e) {
+			logger.warning("Unable to query Linux IPv4 main routing table" + e);
+		}
+		return null;
 	}
 	
     /** Returns the IPv4 address of the interface that is used for the default 
@@ -668,6 +697,9 @@ public class LinuxIPCommandHelper {
 		LinkedList<String> downedIfaces = new LinkedList<String>();
 		
 		String cmd = getIPCommandLocation() + SET_INTERFACE;
+
+		// remember the default route so that we can restore it later on
+		String currentDefaultRoute = getIPv4DefaultRouteSpecification();
 		
 		try {
 			// first set all interfaces down
@@ -694,6 +726,18 @@ public class LinuxIPCommandHelper {
 				else {
 					logger.warning("Set interface " + iface + " down but was unable to set it up again");
 					ret = false;
+				}
+			}
+			
+			// if we had one, restore old default route
+			if (currentDefaultRoute != null && currentDefaultRoute.length() > 0) {
+				if (Command.executeCommand(SH_COMMAND, true, 
+						getIPCommandLocation() + ROUTES_COMMAND + ADD + currentDefaultRoute, 
+						null, null) == 0) 
+					logger.finer("Reloaded default route '" + currentDefaultRoute + "'");
+				else {
+					logger.warning("Unable to reload default route '" + currentDefaultRoute + 
+							"', connectivity will be broken until next network interface change!");
 				}
 			}
 			
