@@ -36,11 +36,21 @@ public class StartAtBootService extends Service {
         	NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
         	if (info != null) {
         		switch (info.getState()) {
+
         		case CONNECTED:
         			Log.i(Constants.LOG_TAG, "Network state change: connected, re-evaluating 6to4 tunnel configuration");
+        			SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
+        			boolean enable6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false);
+        			boolean force6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false);
+        			Log.i(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
+        			Log.i(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
+        	    	if (enable6to4Tunnel) 
+        	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel);
         			break;
+
         		case DISCONNECTED:
         			Log.i(Constants.LOG_TAG, "Network state change: disconnected, deconfiguring 6to4 tunnel");
+    				LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
         			break;
         		}
         	}
@@ -103,18 +113,26 @@ public class StartAtBootService extends Service {
 		if (intent.getExtras().containsKey(SERVICE_COMMAND_PARAM))
 			reload = SERVICE_COMMAND_RELOAD.equals(intent.getExtras().getString(SERVICE_COMMAND_PARAM));
 	        
-		Log.w(Constants.LOG_TAG, "Set to autostart: " + autoStart);
-		Log.w(Constants.LOG_TAG, "Set to enable privacy: " + enablePrivacy);
-		Log.w(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
-		Log.w(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
-		Log.w(Constants.LOG_TAG, "Forcing address reload: " + reload);
-		Log.w(Constants.LOG_TAG, "Overrides taken from intent: " + overrides);
+		Log.i(Constants.LOG_TAG, "Set to autostart: " + autoStart);
+		Log.i(Constants.LOG_TAG, "Set to enable privacy: " + enablePrivacy);
+		Log.i(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
+		Log.i(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
+		Log.i(Constants.LOG_TAG, "Forcing address reload: " + reload);
+		Log.i(Constants.LOG_TAG, "Overrides taken from intent: " + overrides);
 
 		if (autoStart || overrides || reload) {
 			Log.w(Constants.LOG_TAG, "Now enabling address privacy on all currently known interfaces, this might take a few seconds...");
-				// only force reloading addresses when we enable privacy, not when we explicitly disable it
-				applySettingsWithGuiFeedback(getApplicationContext(), 
-	        			enablePrivacy, reload, enable6to4Tunnel, force6to4Tunnel);
+	    	if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, reload))
+			    Toast.makeText(getApplicationContext(), 
+			    		enablePrivacy ? getApplicationContext().getString(R.string.toastEnableSuccess) : getApplicationContext().getString(R.string.toastDisableSuccess), 
+		        		Toast.LENGTH_LONG).show();
+			else
+			    Toast.makeText(getApplicationContext(), 
+			    		enablePrivacy ? getApplicationContext().getString(R.string.toastEnableFailure) : getApplicationContext().getString(R.string.toastDisableFailure),
+		        		Toast.LENGTH_LONG).show();
+	    	
+	    	if (enable6to4Tunnel)
+	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel);
 		}
 
 		// service needs to be sticky to listen to connection change events
@@ -139,68 +157,73 @@ public class StartAtBootService extends Service {
 		Log.v(Constants.LOG_TAG, "StartAtBootService Destroyed");
 	}
 
-
-    private static void applySettingsWithGuiFeedback(Context context, 
-    		boolean enablePrivacy, boolean forceReload,
-    		boolean enable6to4Tunnel, boolean force6to4Tunnel) {
-    	if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, forceReload))
-		    Toast.makeText(context, 
-		    		enablePrivacy ? context.getString(R.string.toastEnableSuccess) : context.getString(R.string.toastDisableSuccess), 
-	        		Toast.LENGTH_LONG).show();
+	/** Helper method to determine of a 6to4 tunnel can be established, i.e. if
+	 * the internally visible 6to4 address matches the one visible globally.
+	 * 
+	 * @param outboundIPv4Addr The internally visible, outbound IPv4 address
+	 *        associated with the local default route.
+	 * @param force6to4Tunnel If set to true, this method will always return true.
+	 */
+	private static boolean is6to4TunnelPossible(Inet4Address outboundIPv4Addr, boolean force6to4Tunnel) {
+		if (force6to4Tunnel) return true;
+		
+		// determine outbound IPv4 address as seen from the outside
+		String globalIPv4AddrStr = IPv6AddressesHelper.getOutboundIPAddress(false);
+		Inet4Address globalIPv4Addr = null;
+		try {
+			if (globalIPv4AddrStr != null)
+				globalIPv4Addr = (Inet4Address) Inet4Address.getByName(globalIPv4AddrStr);
+		} catch (UnknownHostException e) {
+			Log.w(Constants.LOG_TAG, "Unable to parse globally visible IPv4 address '" +
+					globalIPv4AddrStr + "', probably unable to contact resolver server", e);
+			globalIPv4Addr = null;
+		} catch (ClassCastException e) {
+			Log.e(Constants.LOG_TAG, "Unable to parse globally visible IPv4 address '" +
+					globalIPv4AddrStr + "', unknown reason", e);
+			globalIPv4Addr = null;
+		}
+		// check if we could create a tunnel now (i.e. if local and global IPv4 addresses match)
+		if (globalIPv4Addr != null && outboundIPv4Addr.equals(globalIPv4Addr))
+			return true;
 		else
-		    Toast.makeText(context, 
-		    		enablePrivacy ? context.getString(R.string.toastEnableFailure) : context.getString(R.string.toastDisableFailure),
-	        		Toast.LENGTH_LONG).show();
+			return false;
+	}
+	
+	/** Helper method to create a 6to4 tunnel.
+	 * 
+	 * @param force6to4Tunnel If set to true, tunnel creation will be attempted
+	 *        even if the IPv4 addresses do not indicate it possible. 
+	 * @return true when a tunnel interface was established, false otherwise.
+	 */
+	private static boolean create6to4Tunnel(Context context, boolean force6to4Tunnel) {
+		// determine outbound IPv4 address based on routes
+		Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
 
-    	if (enable6to4Tunnel) {
-    		boolean establishTunnel = force6to4Tunnel;
+		boolean establishTunnel = is6to4TunnelPossible(outboundIPv4Addr, force6to4Tunnel);
+		if (! establishTunnel) 
+			    Toast.makeText(context,	context.getString(R.string.toast6to4AddressMismatch), 
+		        		Toast.LENGTH_LONG).show();
+		
+		// check if we should create a tunnel now (i.e. if there is any IPv6 default route)
+		if (! LinuxIPCommandHelper.existsIPv6DefaultRoute() && establishTunnel) {
+			// do it. first delete tunnel if it exists (if it doesn't, don't mind)
+			LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
 
-    		// determine outbound IPv4 address based on routes
-			Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
-    		
-    		if (!establishTunnel) {
-    			// determine outbound IPv4 address as seen from the outside
-    			String globalIPv4AddrStr = IPv6AddressesHelper.getOutboundIPAddress(false);
-    			Inet4Address globalIPv4Addr = null;
-    			try {
-    				if (globalIPv4AddrStr != null)
-    					globalIPv4Addr = (Inet4Address) Inet4Address.getByName(globalIPv4AddrStr);
-    			} catch (UnknownHostException e) {
-    				Log.w(Constants.LOG_TAG, "Unable to parse globally visible IPv4 address '" +
-    						globalIPv4AddrStr + "', probably unable to contact resolver server", e);
-    				globalIPv4Addr = null;
-    			} catch (ClassCastException e) {
-    				Log.e(Constants.LOG_TAG, "Unable to parse globally visible IPv4 address '" +
-    						globalIPv4AddrStr + "', unknown reason", e);
-    				globalIPv4Addr = null;
-    			}
-				// check if we could create a tunnel now (i.e. if local and global IPv4 addresses match)
-    			if (globalIPv4Addr != null && outboundIPv4Addr.equals(globalIPv4Addr))
-    				establishTunnel = true;
-    			else {
-    			    Toast.makeText(context,	context.getString(R.string.toast6to4AddressMismatch), 
-    		        		Toast.LENGTH_LONG).show();
-    			}
-    		}
-			
-			// check if we should create a tunnel now (i.e. if there is any IPv6 default route)
-   			if (! LinuxIPCommandHelper.existsIPv6DefaultRoute() && establishTunnel) {
-				// do it. first delete tunnel if it exists (if it doesn't, don't mind)
-				LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
-
-				// then create tunnel
-				if (LinuxIPCommandHelper.create6to4TunnelInterface(
-						IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
-						outboundIPv4Addr, 
-						IPv6AddressesHelper.compute6to4Prefix(outboundIPv4Addr), 0))
-				    Toast.makeText(context, 
-				    		context.getString(R.string.toast6to4Success), 
-			        		Toast.LENGTH_LONG).show();
-				else
-				    Toast.makeText(context, 
-				    		context.getString(R.string.toast6to4Failure), 
-			        		Toast.LENGTH_LONG).show();
+			// then create tunnel
+			if (LinuxIPCommandHelper.create6to4TunnelInterface(
+					IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
+					outboundIPv4Addr, 
+					IPv6AddressesHelper.compute6to4Prefix(outboundIPv4Addr), 0)) {
+			    Toast.makeText(context,	context.getString(R.string.toast6to4Success), 
+		        		Toast.LENGTH_LONG).show();
+				return true;
+			}
+			else {
+			    Toast.makeText(context,	context.getString(R.string.toast6to4Failure), 
+		        		Toast.LENGTH_LONG).show();
+				return false;
 			}
 		}
-    }
+		else return false;
+	}
 }
