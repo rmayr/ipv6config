@@ -31,7 +31,7 @@ import java.util.logging.Logger;
  */
 public class LinuxIPCommandHelper {
 	/** Our logger for this class. */
-	private final static Logger logger = java.util.logging.Logger.getLogger(LinuxIPCommandHelper.class.getName());
+	private final static Logger logger = java.util.logging.Logger.getLogger(Constants.LOG_TAG);
 
 	/** Identifies an Ethernet interface and, funnily enough, sometimes also the GPRS/UMTS interfaces. */
 	private final static String ETHERNET_INTERFACE = "link/ether";

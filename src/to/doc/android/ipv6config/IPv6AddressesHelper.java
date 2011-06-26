@@ -42,7 +42,7 @@ import javax.net.ssl.X509TrustManager;
 /** This is a helper class to query local and externally visible IPv6 addresses. */
 public class IPv6AddressesHelper {
 	/** Our logger for this class. */
-	private final static Logger logger = java.util.logging.Logger.getLogger(IPv6AddressesHelper.class.getName());
+	private final static Logger logger = java.util.logging.Logger.getLogger(Constants.LOG_TAG);
 
 	public final static String IPv6_6to4_TUNNEL_INTERFACE_NAME = "sit6to4";
 	

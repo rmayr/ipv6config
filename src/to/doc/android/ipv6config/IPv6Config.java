@@ -38,12 +38,10 @@ import android.widget.TextView;
 import android.widget.TextView.BufferType;
 
 public class IPv6Config extends Activity {
-	/** This tag is used for Android logging. */
-	public final static String LOG_TAG = "IPv6Config";
-
 	private CheckBox autoStart;
 	private CheckBox enablePrivacy;
 	private CheckBox enable6to4Tunnel;
+	private CheckBox force6to4Tunnel;
 	private TextView localAddresses;
 	private TextView v6GlobalAddress;
 	private TextView v4GlobalAddress;
@@ -51,25 +49,22 @@ public class IPv6Config extends Activity {
 	
 	private SharedPreferences prefsPrivate;
 
-	protected final static String PREFERENCES_STORE = "IPv6Config";
-	protected final static String PREFERENCE_AUTOSTART = "autostart";
-	protected final static String PREFERENCE_ENABLE_PRIVACY = "enablePrivacyExtensions";
-	protected final static String PREFERENCE_CREATE_TUNNEL = "enable6to4Tunneling";
-
-    /** Called when the activity is first created. */
+	/** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
     
-        prefsPrivate = getSharedPreferences(PREFERENCES_STORE, Context.MODE_PRIVATE);
+        prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
         
         autoStart = (CheckBox) findViewById(R.id.checkboxAutostart);
-        autoStart.setChecked(prefsPrivate.getBoolean(PREFERENCE_AUTOSTART, false));
+        autoStart.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_AUTOSTART, false));
         enablePrivacy = (CheckBox) findViewById(R.id.checkboxEnablePrivacy);
-        enablePrivacy.setChecked(prefsPrivate.getBoolean(PREFERENCE_ENABLE_PRIVACY, true));
+        enablePrivacy.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_ENABLE_PRIVACY, true));
         enable6to4Tunnel = (CheckBox) findViewById(R.id.checkBoxEnable6to4Tunnel);
-        enable6to4Tunnel.setChecked(prefsPrivate.getBoolean(PREFERENCE_CREATE_TUNNEL, false));
+        enable6to4Tunnel.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false));
+        force6to4Tunnel = (CheckBox) findViewById(R.id.checkBoxIgnoreExternalIPs);
+        force6to4Tunnel.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false));
 
         localAddresses = (TextView) findViewById(R.id.viewLocalAddresses);
         v6GlobalAddress = (TextView) findViewById(R.id.viewv6GlobalAddress);
@@ -120,9 +115,10 @@ public class IPv6Config extends Activity {
     
     private void savePreferences() {
     	Editor prefsPrivateEditor = prefsPrivate.edit();
-		prefsPrivateEditor.putBoolean(PREFERENCE_AUTOSTART, autoStart.isChecked());
-		prefsPrivateEditor.putBoolean(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
-		prefsPrivateEditor.putBoolean(PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_AUTOSTART, autoStart.isChecked());
+		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_FORCE_TUNNEL, force6to4Tunnel.isChecked());
 		prefsPrivateEditor.commit();
     }
     
@@ -135,7 +131,7 @@ public class IPv6Config extends Activity {
     		// this can take a few seconds
     		String globalIPv4Addr = IPv6AddressesHelper.getOutboundIPAddress(false);
     		String globalIPv6Addr = IPv6AddressesHelper.getOutboundIPAddress(true);
-    		Log.w(LOG_TAG, "v6Global = " + globalIPv6Addr);
+    		Log.w(Constants.LOG_TAG, "v6Global = " + globalIPv6Addr);
         	return new String[] {globalIPv4Addr, globalIPv6Addr};
     	}
     	
@@ -148,11 +144,16 @@ public class IPv6Config extends Activity {
     		} else if (v4Text.equals(v4LocalDefaultAddress.getText())) {
 				v4Text += "\n" + getString(R.string.ipv4GlobalAddressMatchesLocal);
 				v4GlobalAddress.setTextColor(Color.BLUE);
-				enable6to4Tunnel.setEnabled(true);
+				//enable6to4Tunnel.setEnabled(true);
+				enable6to4Tunnel.setText(R.string.create6to4Tunnel);
+				enable6to4Tunnel.setTextColor(Color.WHITE);
     		} else {
 				v4Text += "\n" + getString(R.string.ipv4GlobalAddressNotMatchesLocal);
 				v4GlobalAddress.setTextColor(Color.RED);
-				enable6to4Tunnel.setEnabled(false);
+				//enable6to4Tunnel.setEnabled(false);
+				enable6to4Tunnel.setText(getString(R.string.create6to4Tunnel) + " " + 
+						getString(R.string.create6to4TunnelInvalid));
+				enable6to4Tunnel.setTextColor(Color.YELLOW);
     		}
     		v4GlobalAddress.setText(v4Text);
     		
@@ -168,14 +169,14 @@ public class IPv6Config extends Activity {
     			else
     				v6GlobalAddress.setTextColor(Color.GREEN);
     		} catch (UnknownHostException e) {
-    			Log.e(LOG_TAG, "Unable to generate Inet6Address object from string " + v6Text, e);
+    			Log.e(Constants.LOG_TAG, "Unable to generate Inet6Address object from string " + v6Text, e);
     		}
     		v6GlobalAddress.setText(v6Text);
     	}
     }
 
     public void determineAddress(View v) {
-    	Log.d(LOG_TAG, "determineAddress clicked");
+    	Log.d(Constants.LOG_TAG, "determineAddress clicked");
 
     	displayLocalAddresses();
 
@@ -188,12 +189,11 @@ public class IPv6Config extends Activity {
     }
     
     public void changeAddressPrivacyState(View v) {
-    	Log.d(LOG_TAG, "checkBoxEnablePrivacy clicked/changed status");
+    	Log.d(Constants.LOG_TAG, "checkBoxEnablePrivacy clicked/changed status");
 
     	// apply change immediately when clicking the checkbox, but don't reload until forced
     	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
-    	serviceCall.putExtra(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
-    	serviceCall.putExtra(PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+    	serviceCall.putExtra(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
    		getApplicationContext().startService(serviceCall);
 
     	// and reload address display
@@ -201,12 +201,13 @@ public class IPv6Config extends Activity {
     }
 
     public void forceAddressReload(View v) {
-    	Log.d(LOG_TAG, "forceAddressReload clicked");
+    	Log.d(Constants.LOG_TAG, "forceAddressReload clicked");
     	savePreferences();
 
     	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
-    	serviceCall.putExtra(PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
-    	serviceCall.putExtra(PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+    	serviceCall.putExtra(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
+    	serviceCall.putExtra(Constants.PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
+    	serviceCall.putExtra(Constants.PREFERENCE_FORCE_TUNNEL, force6to4Tunnel.isChecked());
     	// force an address reload
     	serviceCall.putExtra(StartAtBootService.SERVICE_COMMAND_PARAM, StartAtBootService.SERVICE_COMMAND_RELOAD);
    		getApplicationContext().startService(serviceCall);
@@ -237,14 +238,14 @@ public class IPv6Config extends Activity {
 					addrs.append(addr.address.getHostAddress() + " ");
 					if (addr.isIPv6GlobalMacDerivedAddress()) hasPrivacySensitiveAddress = true;
 				}
-				Log.e(LOG_TAG, "Interface " + iface.name + " with MAC " + iface.mac + 
+				Log.e(Constants.LOG_TAG, "Interface " + iface.name + " with MAC " + iface.mac + 
 						" has addresses " + addrs + 
 						(hasPrivacySensitiveAddress ? " and one of them is a globally traceable IPv6 address, WARNING" : ""));
 				
 				localAddresses.setText(addrs, BufferType.SPANNABLE);
 			}
 		} catch (IOException e) {
-			Log.e(LOG_TAG, "Unable to get interface detail, most probably because system command " + 
+			Log.e(Constants.LOG_TAG, "Unable to get interface detail, most probably because system command " + 
 					" could not be executed. Missing access rights? ", e);
 		}
     }

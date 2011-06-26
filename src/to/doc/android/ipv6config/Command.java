@@ -33,7 +33,7 @@ import java.util.logging.Logger;
  */
 public class Command {
 	/** Our logger for this class. */
-	private final static Logger logger = Logger.getLogger(Command.class.getName());
+	private final static Logger logger = Logger.getLogger(Constants.LOG_TAG);
 	
 	/** Buffer size used for BufferReader and BufferWriter. */
 	private final static int IOBufferSize = 4192;
