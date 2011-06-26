@@ -16,7 +16,7 @@
     <string name="ipv4LocalDefaultAddress">Local IPv4 address with default route:</string>
     <string name="notSet">not yet determined</string>
     <string name="determining">Determining address...</string>
-    <string name="determineFailed">Unable to determine address, resolver server not reachable</string>
+    <string name="determineFailed">Unable to determine address, resolver server not reachable via </string>
     <string name="determineLocalFailed">Unable to determine local default address, unknown routes set</string>
     <string name="toastEnableSuccess">IPv6Config successfully enabled address privacy</string>
     <string name="toastDisableSuccess">IPv6Config successfully disabled address privacy</string>
@@ -28,5 +28,5 @@
     <string name="aboutText">Copyright (C) René Mayrhofer (2011)\nIPv6Config allows to modify kernel settings to configure the Linux IPv6 stack, most notably to enable IPv6 address privacy extensions. See http://www.mayrhofer.eu.org/android-ipv6config for details.\n\nThis application is published as open source under the terms of the GNU General Public License (GPL) version 3. With the exception of the application icons, it may be modified and redistributed as long as the modified source code is also made available under this license.\n\nIcons designed by Doris Mayrhofer.</string>
     <string name="create6to4Tunnel">Create (6to4) IPv6 tunnel when no native default route is available</string>
     <string name="create6to4TunnelInvalid">(will probably not work with current settings)</string>
-    <string name="ignoreExternalIPs">Ignore externally resolved IPs and force 6to4 tunnel with internally visible IPv4 address</string>
+    <string name="ignoreExternalIPs">Advanced setting (only if you know what you are doing): Ignore externally resolved IPs and force 6to4 tunnel with internally visible IPv4 address</string>
 </resources>

@@ -734,10 +734,10 @@ public class LinuxIPCommandHelper {
 				if (Command.executeCommand(SH_COMMAND, true, 
 						getIPCommandLocation() + ROUTES_COMMAND + ADD + currentDefaultRoute, 
 						null, null) == 0) 
-					logger.finer("Reloaded default route '" + currentDefaultRoute + "'");
+					logger.fine("Reloaded default route '" + currentDefaultRoute + "'");
 				else {
 					logger.warning("Unable to reload default route '" + currentDefaultRoute + 
-							"', connectivity will be broken until next network interface change!");
+							"', connectivity may be broken until next network interface change!");
 				}
 			}
 			

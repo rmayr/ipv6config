@@ -196,6 +196,9 @@ public class StartAtBootService extends Service {
 	 * @return true when a tunnel interface was established, false otherwise.
 	 */
 	private static boolean create6to4Tunnel(Context context, boolean force6to4Tunnel) {
+		// first delete tunnel if it exists (if it doesn't, don't mind)
+		LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
+
 		// check if we should create a tunnel now (i.e. if there is any IPv6 default route)
 		if (LinuxIPCommandHelper.existsIPv6DefaultRoute()) {
 			Log.i(Constants.LOG_TAG, "Not creating a 6to4 tunnel because an IPv6 default route already exists.");
@@ -211,10 +214,7 @@ public class StartAtBootService extends Service {
 		    return false;
 		}
 		else {
-			// do it. first delete tunnel if it exists (if it doesn't, don't mind)
-			LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
-
-			// then create tunnel
+			// finally create tunnel
 			if (LinuxIPCommandHelper.create6to4TunnelInterface(
 					IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
 					outboundIPv4Addr, 

@@ -140,7 +140,7 @@ public class IPv6Config extends Activity {
     		String v4Text = outboundAddrs[0];
     		if (v4Text == null) {
     			v4GlobalAddress.setTextColor(Color.YELLOW);
-    			v4Text = getString(R.string.determineFailed);
+    			v4Text = getString(R.string.determineFailed) + " IPv4";
     		} else if (v4Text.equals(v4LocalDefaultAddress.getText())) {
 				v4Text += "\n" + getString(R.string.ipv4GlobalAddressMatchesLocal);
 				v4GlobalAddress.setTextColor(Color.BLUE);
@@ -161,7 +161,7 @@ public class IPv6Config extends Activity {
         	try {
         		if (v6Text == null) {
         			v6GlobalAddress.setTextColor(Color.YELLOW);
-        			v6Text = getString(R.string.determineFailed);
+        			v6Text = getString(R.string.determineFailed) + " IPv6";
         		} else if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(v6Text))) {
     				v6Text += "\n" + getString(R.string.ipv6GlobalAddressIsMacDerived);
     				v6GlobalAddress.setTextColor(Color.RED);
