@@ -125,53 +125,64 @@ public class IPv6Config extends Activity {
     /** A helper class to query the doc.to server for the externally visible 
      * IPv6 address asynchronously.
      */
-    private class DetermineAddressTask extends AsyncTask<Void, Void, String[]> {
+    private class DetermineAddressTask extends AsyncTask<Void, Void, String> {
+    	private boolean doIPv6;
+    	private TextView globalAddress;
+    	
+    	protected DetermineAddressTask(boolean doIPv6) {
+    		this.doIPv6 = doIPv6;
+    		if (doIPv6)
+    			globalAddress = v6GlobalAddress;
+    		else
+    			globalAddress = v4GlobalAddress;
+    	}
+    	
     	/** This method will be executed in a background thread when execute() is called. */
-    	protected String[] doInBackground(Void... noParms) {
-    		// this can take a few seconds
-    		String globalIPv4Addr = IPv6AddressesHelper.getOutboundIPAddress(false);
-    		String globalIPv6Addr = IPv6AddressesHelper.getOutboundIPAddress(true);
-    		Log.w(Constants.LOG_TAG, "v6Global = " + globalIPv6Addr);
-        	return new String[] {globalIPv4Addr, globalIPv6Addr};
+    	protected String doInBackground(Void... noParms) {
+    		return IPv6AddressesHelper.getOutboundIPAddress(doIPv6);
     	}
     	
     	/** This method will be executed in the UI thread after doInBackground finishes. */
-    	protected void onPostExecute(String[] outboundAddrs) {
-    		String v4Text = outboundAddrs[0];
-    		if (v4Text == null) {
-    			v4GlobalAddress.setTextColor(Color.YELLOW);
-    			v4Text = getString(R.string.determineFailed) + " IPv4";
-    		} else if (v4Text.equals(v4LocalDefaultAddress.getText())) {
-				v4Text += "\n" + getString(R.string.ipv4GlobalAddressMatchesLocal);
-				v4GlobalAddress.setTextColor(Color.BLUE);
-				//enable6to4Tunnel.setEnabled(true);
-				enable6to4Tunnel.setText(R.string.create6to4Tunnel);
-				enable6to4Tunnel.setTextColor(Color.WHITE);
-    		} else {
-				v4Text += "\n" + getString(R.string.ipv4GlobalAddressNotMatchesLocal);
-				v4GlobalAddress.setTextColor(Color.RED);
-				//enable6to4Tunnel.setEnabled(false);
-				enable6to4Tunnel.setText(getString(R.string.create6to4Tunnel) + " " + 
-						getString(R.string.create6to4TunnelInvalid));
-				enable6to4Tunnel.setTextColor(Color.YELLOW);
-    		}
-    		v4GlobalAddress.setText(v4Text);
+    	protected void onPostExecute(String outboundAddr) {
     		
-    		String v6Text = outboundAddrs[1];
-        	try {
-        		if (v6Text == null) {
-        			v6GlobalAddress.setTextColor(Color.YELLOW);
-        			v6Text = getString(R.string.determineFailed) + " IPv6";
-        		} else if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(v6Text))) {
-    				v6Text += "\n" + getString(R.string.ipv6GlobalAddressIsMacDerived);
-    				v6GlobalAddress.setTextColor(Color.RED);
+    		
+    		if (outboundAddr == null) {
+    			globalAddress.setTextColor(Color.YELLOW);
+    			outboundAddr = getString(R.string.determineFailed) + 
+    				(doIPv6 ? " IPv6" : " IPv4");
+    		} else if (!doIPv6) {
+    			// special handling for IPv4 addresses
+    			if (outboundAddr.equals(v4LocalDefaultAddress.getText())) {
+    				outboundAddr += "\n" + getString(R.string.ipv4GlobalAddressMatchesLocal);
+    				globalAddress.setTextColor(Color.BLUE);
+				
+    				//enable6to4Tunnel.setEnabled(true);
+    				enable6to4Tunnel.setText(R.string.create6to4Tunnel);
+    				enable6to4Tunnel.setTextColor(Color.WHITE);
+    			} else {
+    				outboundAddr += "\n" + getString(R.string.ipv4GlobalAddressNotMatchesLocal);
+    				globalAddress.setTextColor(Color.RED);
+				
+    				//enable6to4Tunnel.setEnabled(false);
+    				enable6to4Tunnel.setText(getString(R.string.create6to4Tunnel) + " " + 
+						getString(R.string.create6to4TunnelInvalid));
+    				enable6to4Tunnel.setTextColor(Color.YELLOW);
     			}
-    			else
-    				v6GlobalAddress.setTextColor(Color.GREEN);
-    		} catch (UnknownHostException e) {
-    			Log.e(Constants.LOG_TAG, "Unable to generate Inet6Address object from string " + v6Text, e);
+    		} else {
+    			// special handling for IPv6 addresses
+            	try {
+            		if (IPv6AddressesHelper.isIPv6GlobalMacDerivedAddress(Inet6Address.getByName(outboundAddr))) {
+        				outboundAddr += "\n" + getString(R.string.ipv6GlobalAddressIsMacDerived);
+        				globalAddress.setTextColor(Color.RED);
+        			}
+        			else
+        				globalAddress.setTextColor(Color.GREEN);
+        		} catch (UnknownHostException e) {
+        			Log.e(Constants.LOG_TAG, "Unable to generate Inet6Address object from string " + outboundAddr, e);
+        		}
     		}
-    		v6GlobalAddress.setText(v6Text);
+    		
+    		globalAddress.setText(outboundAddr);
     	}
     }
 
@@ -185,7 +196,8 @@ public class IPv6Config extends Activity {
     	v6GlobalAddress.setText(R.string.determining);
     	v4GlobalAddress.setTextColor(Color.LTGRAY);
     	v4GlobalAddress.setText(R.string.determining);
-    	new DetermineAddressTask().execute();
+    	new DetermineAddressTask(false).execute();
+    	new DetermineAddressTask(true).execute();
     }
     
     public void changeAddressPrivacyState(View v) {
