@@ -109,6 +109,15 @@ public class IPv6Config extends Activity {
         switch (item.getItemId()) {
             case R.id.about_menuitem:
             	startActivity(new Intent(this, About.class));
+            	break;
+            case R.id.email_menuitem:
+            	Intent emailIntent = new Intent(android.content.Intent.ACTION_SEND);
+            	String aEmailList[] = { "rene@mayrhofer.eu.org" };
+            	emailIntent.setType("plain/text");
+            	emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, aEmailList);
+            	emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "[IPv6Config feedback]");
+            	startActivity(Intent.createChooser(emailIntent, getString(R.string.emailChooser)));
+            	break;
         }
         return true;
     }
