@@ -166,6 +166,10 @@ public class StartAtBootService extends Service {
 	 */
 	private static boolean is6to4TunnelPossible(Inet4Address outboundIPv4Addr, boolean force6to4Tunnel) {
 		if (force6to4Tunnel) return true;
+		if (outboundIPv4Addr == null) {
+			Log.w(Constants.LOG_TAG, "Unknown IPv4 outbound addresss, cannot establish 6to4 tunnel");
+			return false;
+		}
 		
 		// determine outbound IPv4 address as seen from the outside
 		String globalIPv4AddrStr = IPv6AddressesHelper.getOutboundIPAddress(false);

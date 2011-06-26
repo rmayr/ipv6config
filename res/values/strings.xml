@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <resources>
-    <string name="about">About</string>
-    <string name="hello">Hello World, IPv6Config!</string>
     <string name="app_name">IPv6Config</string>
     <string name="ipv6Address">All local addresses:</string>
     <string name="autostart">Apply settings on device bootup</string>
@@ -29,6 +27,9 @@
     <string name="create6to4TunnelInvalid">(will probably not work with current settings)</string>
     <string name="ignoreExternalIPs">Advanced setting (only if you know what you are doing): Ignore externally resolved IPs and force 6to4 tunnel with internally visible IPv4 address</string>
     <string name="aboutText">Copyright (C) René Mayrhofer (2011)\nIPv6Config allows to modify kernel settings to configure the Linux IPv6 stack, most notably to enable IPv6 address privacy extensions. See http://www.mayrhofer.eu.org/android-ipv6config for details.\n\nThis application is published as open source under the terms of the GNU General Public License (GPL) version 3. With the exception of the application icons, it may be modified and redistributed as long as the modified source code is also made available under this license.\n\nIcons designed by Doris Mayrhofer.</string>
+    <string name="about">About</string>
     <string name="email">Email developer</string>
     <string name="emailChooser">Send email to developer in:</string>
+    <string name="noSuDetected">Superuser/root access not detected. This application will not work without access to the "su" binary, which typically comes with the "SuperUser" application on rooted Android devices.\n\nPlease root your device and try again.</string>
+    <string name="exit">Exit</string>
 </resources>

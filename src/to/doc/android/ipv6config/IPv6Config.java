@@ -21,7 +21,9 @@ import to.doc.android.ipv6config.LinuxIPCommandHelper.InterfaceDetail;
 import to.doc.android.ipv6config.LinuxIPCommandHelper.InetAddressWithNetmask;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
@@ -70,6 +72,30 @@ public class IPv6Config extends Activity {
         v6GlobalAddress = (TextView) findViewById(R.id.viewv6GlobalAddress);
         v4GlobalAddress = (TextView) findViewById(R.id.viewv4GlobalAddress);
         v4LocalDefaultAddress = (TextView) findViewById(R.id.viewv4LocalDefaultAddress);
+        
+        // before doing anything fancy, try to detect if we can get root privileges
+        boolean canSu = false;
+        try {
+			if (Command.executeCommand(LinuxIPCommandHelper.SH_COMMAND, true, "", null, null) == 0)
+				canSu = true;
+			else
+				Log.e(Constants.LOG_TAG, "Unable to execute sh with superuser access, notifying user and exiting");
+		} catch (IOException e) {
+			Log.e(Constants.LOG_TAG, "Unable to execute sh with superuser access, notifying user and exiting", e);
+		} catch (InterruptedException e) {
+			Log.e(Constants.LOG_TAG, "Unable to execute sh with superuser access, notifying user and exiting", e);
+		}
+		if (!canSu) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setMessage(R.string.noSuDetected)
+		       .setCancelable(false)
+		       .setNeutralButton(R.string.exit, new DialogInterface.OnClickListener() {
+		           public void onClick(DialogInterface dialog, int id) {
+		                IPv6Config.this.finish();
+		           }
+		       });
+		    builder.create().show();
+		}
 
         displayLocalAddresses();
 
