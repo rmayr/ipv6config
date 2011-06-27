@@ -788,6 +788,11 @@ public class LinuxIPCommandHelper {
 	public static boolean create6to4TunnelInterface(String iface, 
 			Inet4Address localIPv4Endpoint, String ipv6Prefix, int mtu) {
 		if (mtu <= 0) mtu = 1430;
+		
+		if (localIPv4Endpoint == null || ipv6Prefix == null || iface == null) {
+			logger.severe("Unable to create 6to4 tunnel, null parameters");
+			return false;
+		}
 
 		String cmdTunnel = getIPCommandLocation() + ADD_TUNNEL_INTERFACE +
 			iface + ADD_TUNNEL_INTERFACE_OPTIONS_1 + 

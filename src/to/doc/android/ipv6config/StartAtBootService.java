@@ -78,8 +78,9 @@ public class StartAtBootService extends Service {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		Log.v(Constants.LOG_TAG, "StartAtBootService -- onStartCommand()");	        
 
-		if (intent.getExtras().containsKey(SERVICE_COMMAND_PARAM) && 
-			SERVICE_COMMAND_NOOP.equals(intent.getExtras().getString(SERVICE_COMMAND_PARAM))) {
+		if (intent != null && intent.getExtras() != null && 
+				intent.getExtras().containsKey(SERVICE_COMMAND_PARAM) && 
+				SERVICE_COMMAND_NOOP.equals(intent.getExtras().getString(SERVICE_COMMAND_PARAM))) {
 			Log.w(Constants.LOG_TAG, "StartAtBootService skipping all actions because noop command received via intent");
 			return Service.START_STICKY;
 		}
@@ -96,21 +97,25 @@ public class StartAtBootService extends Service {
 		 * cause the service to perform its actions in any case (even if 
 		 * autoStart is not set) 
 		 */
-		if (intent.getExtras().containsKey(Constants.PREFERENCE_ENABLE_PRIVACY)) {
+		if (intent != null && intent.getExtras() != null && 
+				intent.getExtras().containsKey(Constants.PREFERENCE_ENABLE_PRIVACY)) {
 			enablePrivacy = intent.getExtras().getBoolean(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy);
 			overrides = true;
 		}
-		if (intent.getExtras().containsKey(Constants.PREFERENCE_CREATE_TUNNEL)) {
+		if (intent != null && intent.getExtras() != null && 
+				intent.getExtras().containsKey(Constants.PREFERENCE_CREATE_TUNNEL)) {
 			enable6to4Tunnel = intent.getExtras().getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel);
 			overrides = true;
 		}
-		if (intent.getExtras().containsKey(Constants.PREFERENCE_FORCE_TUNNEL)) {
+		if (intent != null && intent.getExtras() != null && 
+				intent.getExtras().containsKey(Constants.PREFERENCE_FORCE_TUNNEL)) {
 			force6to4Tunnel = intent.getExtras().getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, force6to4Tunnel);
 			overrides = true;
 		}
 
 		boolean reload = false;
-		if (intent.getExtras().containsKey(SERVICE_COMMAND_PARAM))
+		if (intent != null && intent.getExtras() != null && 
+				intent.getExtras().containsKey(SERVICE_COMMAND_PARAM))
 			reload = SERVICE_COMMAND_RELOAD.equals(intent.getExtras().getString(SERVICE_COMMAND_PARAM));
 	        
 		Log.i(Constants.LOG_TAG, "Set to autostart: " + autoStart);
