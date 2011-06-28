@@ -179,8 +179,6 @@ public class IPv6Config extends Activity {
     	
     	/** This method will be executed in the UI thread after doInBackground finishes. */
     	protected void onPostExecute(String outboundAddr) {
-    		
-    		
     		if (outboundAddr == null) {
     			globalAddress.setTextColor(Color.YELLOW);
     			outboundAddr = getString(R.string.determineFailed) + 
@@ -210,8 +208,10 @@ public class IPv6Config extends Activity {
         				outboundAddr += "\n" + getString(R.string.ipv6GlobalAddressIsMacDerived);
         				globalAddress.setTextColor(Color.RED);
         			}
-        			else
+        			else {
+        				outboundAddr += "\n" + getString(R.string.ipv6GlobalAddressIsNotMacDerived);
         				globalAddress.setTextColor(Color.GREEN);
+        			}
         		} catch (UnknownHostException e) {
         			Log.e(Constants.LOG_TAG, "Unable to generate Inet6Address object from string " + outboundAddr, e);
         		}

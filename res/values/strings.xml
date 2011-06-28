@@ -8,6 +8,7 @@
     <string name="determineAddress">Determine globally visible addresses</string>
     <string name="ipv6GlobalAddress">Globally visible IPv6 address:</string>
     <string name="ipv6GlobalAddressIsMacDerived">WARNING: privacy extensions not in use, device can be globally tracked</string>
+    <string name="ipv6GlobalAddressIsNotMacDerived">Good: privacy extensions in use</string>
     <string name="ipv4GlobalAddress">Globally visible IPv4 address:</string>
     <string name="ipv4GlobalAddressMatchesLocal">matches locally visible default route address, 6to4 tunneling possible</string>
     <string name="ipv4GlobalAddressNotMatchesLocal">does not match locally visible default route address, 6to4 tunneling not possible</string>
