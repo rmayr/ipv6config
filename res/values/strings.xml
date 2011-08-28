@@ -35,5 +35,6 @@
     <string name="installBusybox">Install Busybox</string>
     <string name="noSuDetected">Superuser/root access not detected. This application will not work without access to the "su" binary, which typically comes with the "SuperUser" application on rooted Android devices.\n\nPlease root your device and try again.</string>
     <string name="noWorkingIpBinaryDetected">Could not find a working "ip" binary. IPv6Config can set privacy options, but will be unable to enable 6to4 tunneling. Please ensure that your device has a working "ip" binary, for example by installing a complete busybox binary (e.g. using the menu item). Tried the following command locations: </string>
+    <string name="ipv6PrivacyOptionsNotSupported">IPv6 address privacy not supported by running Linux kernel. Please update to a newer or alternative firmware with IPv6 address privacy support in kernel.</string>
     <string name="exit">Exit</string>
 </resources>

@@ -619,7 +619,17 @@ public class LinuxIPCommandHelper {
 		}
 		return ifaces;
     }
-	
+
+    /** Determines if the necessary kernel options for IPv6 privacy are available.
+     * 
+     * @return true if available, false otherwise.
+     */
+    public static boolean isIPv6PrivacySupportInKernel() {
+		 return new File(IPV6_CONFIG_TREE + CONF_INTERFACES_ALL + ADDRESS_PRIVACY_PART2).canRead() &&
+		 		new File(IPV6_CONFIG_TREE + CONF_INTERFACES_DEFAULT + ADDRESS_PRIVACY_PART2).canRead();
+
+    }
+    
 	/** Enable address privacy for all interfaces and potentially try to force reload.
 	 * 
 	 * @param enablePrivacy If true, enable privacy. If false, disable address privacy. 

@@ -79,6 +79,7 @@ public class IPv6Config extends Activity {
         v4GlobalAddress = (TextView) findViewById(R.id.viewv4GlobalAddress);
         v4LocalDefaultAddress = (TextView) findViewById(R.id.viewv4LocalDefaultAddress);
         
+        ////// SANITY CHECK 1 //////
         // before doing anything fancy, try to detect if we can get root privileges
         boolean canSu = false;
         try {
@@ -101,10 +102,19 @@ public class IPv6Config extends Activity {
 		           }
 		       });
 		    builder.create().show();
-		    enable6to4Tunnel.setEnabled(false);
-		    force6to4Tunnel.setEnabled(false);
 		}
 		
+        ////// SANITY CHECK 2 //////
+		// check kernel /proc/sys/net/ipv6 tree to see if the kernel actually supports IPv6 address privacy
+		if (!LinuxIPCommandHelper.isIPv6PrivacySupportInKernel()) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setMessage(R.string.ipv6PrivacyOptionsNotSupported).setCancelable(true);
+		    builder.create().show();
+		    enablePrivacy.setEnabled(false);
+		    enablePrivacy.setChecked(false);
+		}
+		
+        ////// SANITY CHECK 3 //////
 		// and then verify if we have a working ip binary
 		if (LinuxIPCommandHelper.getIPCommandLocation() == null) {
 			AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -112,7 +122,10 @@ public class IPv6Config extends Activity {
 					LinuxIPCommandHelper.getAllTriedIPCommandLocations())
 		       .setCancelable(true);
 		    builder.create().show();
-		    
+		    enable6to4Tunnel.setEnabled(false);
+		    enable6to4Tunnel.setChecked(false);
+		    force6to4Tunnel.setEnabled(false);
+		    force6to4Tunnel.setChecked(false);
 		}
 
         displayLocalAddresses();
