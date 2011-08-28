@@ -3,6 +3,7 @@
     <string name="app_name">IPv6Config</string>
     <string name="ipv6Address">All local addresses:</string>
     <string name="autostart">Apply settings on device bootup</string>
+    <string name="displayNotifications">Display status notifications during tunnel setup</string>
     <string name="ipv6privacy">Enable IPv6 address privacy</string>
     <string name="forceAddressReload">Force new IPv6 address assignment and/or re-create 6to4 tunnel</string>
     <string name="determineAddress">Determine globally visible addresses</string>

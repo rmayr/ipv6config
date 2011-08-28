@@ -42,10 +42,11 @@ public class StartAtBootService extends Service {
         			SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
         			boolean enable6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false);
         			boolean force6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false);
+        			boolean displayNotifications = prefsPrivate.getBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, true);
         			Log.i(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
         			Log.i(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
         	    	if (enable6to4Tunnel) 
-        	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel);
+        	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel, displayNotifications);
         			break;
 
         		case DISCONNECTED:
@@ -88,6 +89,7 @@ public class StartAtBootService extends Service {
 		SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
 	        
 		boolean autoStart = prefsPrivate.getBoolean(Constants.PREFERENCE_AUTOSTART, false);
+		boolean displayNotifications = prefsPrivate.getBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, true);
 		boolean enablePrivacy = prefsPrivate.getBoolean(Constants.PREFERENCE_ENABLE_PRIVACY, false);
 		boolean enable6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false);
 		boolean force6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false);
@@ -127,17 +129,20 @@ public class StartAtBootService extends Service {
 
 		if (autoStart || overrides || reload) {
 			Log.w(Constants.LOG_TAG, "Now enabling address privacy on all currently known interfaces, this might take a few seconds...");
-	    	if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, reload))
-			    Toast.makeText(getApplicationContext(), 
+	    	if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, reload)) {
+	    		if (displayNotifications)
+	    			Toast.makeText(getApplicationContext(), 
 			    		enablePrivacy ? getApplicationContext().getString(R.string.toastEnableSuccess) : getApplicationContext().getString(R.string.toastDisableSuccess), 
 		        		Toast.LENGTH_LONG).show();
-			else
+	    	}
+			else {
 			    Toast.makeText(getApplicationContext(), 
 			    		enablePrivacy ? getApplicationContext().getString(R.string.toastEnableFailure) : getApplicationContext().getString(R.string.toastDisableFailure),
 		        		Toast.LENGTH_LONG).show();
+			}
 	    	
 	    	if (enable6to4Tunnel)
-	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel);
+	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel, displayNotifications);
 		}
 
 		// service needs to be sticky to listen to connection change events
@@ -204,7 +209,7 @@ public class StartAtBootService extends Service {
 	 *        even if the IPv4 addresses do not indicate it possible. 
 	 * @return true when a tunnel interface was established, false otherwise.
 	 */
-	private static boolean create6to4Tunnel(Context context, boolean force6to4Tunnel) {
+	private static boolean create6to4Tunnel(Context context, boolean force6to4Tunnel, boolean displayNotifications) {
 		// first delete tunnel if it exists (if it doesn't, don't mind)
 		LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
 
@@ -217,8 +222,9 @@ public class StartAtBootService extends Service {
 		// determine outbound IPv4 address based on routes
 		Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
 
-		if (! is6to4TunnelPossible(outboundIPv4Addr, force6to4Tunnel)) { 
-		    Toast.makeText(context,	context.getString(R.string.toast6to4AddressMismatch), 
+		if (! is6to4TunnelPossible(outboundIPv4Addr, force6to4Tunnel)) {
+			if (displayNotifications)
+				Toast.makeText(context,	context.getString(R.string.toast6to4AddressMismatch), 
 	        		Toast.LENGTH_LONG).show();
 		    return false;
 		}
@@ -228,12 +234,14 @@ public class StartAtBootService extends Service {
 					IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
 					outboundIPv4Addr, 
 					IPv6AddressesHelper.compute6to4Prefix(outboundIPv4Addr), 0)) {
-			    Toast.makeText(context,	context.getString(R.string.toast6to4Success), 
+				if (displayNotifications)
+					Toast.makeText(context,	context.getString(R.string.toast6to4Success), 
 		        		Toast.LENGTH_LONG).show();
 				return true;
 			}
 			else {
-			    Toast.makeText(context,	context.getString(R.string.toast6to4Failure), 
+				if (displayNotifications)
+					Toast.makeText(context,	context.getString(R.string.toast6to4Failure), 
 		        		Toast.LENGTH_LONG).show();
 				return false;
 			}

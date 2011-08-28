@@ -6,6 +6,7 @@ public class Constants {
 	
 	protected final static String PREFERENCES_STORE = "IPv6Config";
 	protected final static String PREFERENCE_AUTOSTART = "autostart";
+	protected final static String PREFERENCE_DISPLAY_NOTIFICATIONS = "displayNotifications";
 	protected final static String PREFERENCE_ENABLE_PRIVACY = "enablePrivacyExtensions";
 	protected final static String PREFERENCE_CREATE_TUNNEL = "enable6to4Tunneling";
 	protected final static String PREFERENCE_FORCE_TUNNEL = "force6to4Tunneling";

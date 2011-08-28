@@ -15,9 +15,10 @@
             <TextView android:textStyle="bold" android:id="@+id/viewv4GlobalAddress" android:text="@string/notSet" android:layout_width="wrap_content" android:layout_height="wrap_content"></TextView>
             <Button android:id="@+id/buttonDetermineAddress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/determineAddress" android:onClick="determineAddress"></Button>
             <CheckBox android:id="@+id/checkboxAutostart" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/autostart"></CheckBox>
+            <CheckBox android:id="@+id/checkBoxDisplayNotifications" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/displayNotifications"></CheckBox>
             <CheckBox android:id="@+id/checkboxEnablePrivacy" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ipv6privacy" android:onClick="changeAddressPrivacyState"></CheckBox>
             <CheckBox android:id="@+id/checkBoxEnable6to4Tunnel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/create6to4Tunnel"></CheckBox>
-            <CheckBox android:layout_height="wrap_content" android:id="@+id/checkBoxIgnoreExternalIPs" android:layout_width="wrap_content" android:text="@string/ignoreExternalIPs"></CheckBox>
+            <CheckBox android:id="@+id/checkBoxIgnoreExternalIPs" android:layout_height="wrap_content" android:layout_width="wrap_content" android:text="@string/ignoreExternalIPs"></CheckBox>
             <Button android:id="@+id/buttonForceReload" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/forceAddressReload" android:onClick="forceAddressReload"></Button>
         </LinearLayout>
     </ScrollView>

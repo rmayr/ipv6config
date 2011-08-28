@@ -44,6 +44,7 @@ public class IPv6Config extends Activity {
 	private final static String RECOMMENDED_BUSYBOX_INSTALLER_LINK = "market://details?id=com.jrummy.busybox.installer";
 	
 	private CheckBox autoStart;
+	private CheckBox displayNotifications;
 	private CheckBox enablePrivacy;
 	private CheckBox enable6to4Tunnel;
 	private CheckBox force6to4Tunnel;
@@ -64,6 +65,8 @@ public class IPv6Config extends Activity {
         
         autoStart = (CheckBox) findViewById(R.id.checkboxAutostart);
         autoStart.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_AUTOSTART, false));
+        displayNotifications = (CheckBox) findViewById(R.id.checkBoxDisplayNotifications);
+        displayNotifications.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, true));
         enablePrivacy = (CheckBox) findViewById(R.id.checkboxEnablePrivacy);
         enablePrivacy.setChecked(prefsPrivate.getBoolean(Constants.PREFERENCE_ENABLE_PRIVACY, true));
         enable6to4Tunnel = (CheckBox) findViewById(R.id.checkBoxEnable6to4Tunnel);
@@ -171,6 +174,7 @@ public class IPv6Config extends Activity {
     private void savePreferences() {
     	Editor prefsPrivateEditor = prefsPrivate.edit();
 		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_AUTOSTART, autoStart.isChecked());
+		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, displayNotifications.isChecked());
 		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
 		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
 		prefsPrivateEditor.putBoolean(Constants.PREFERENCE_FORCE_TUNNEL, force6to4Tunnel.isChecked());
