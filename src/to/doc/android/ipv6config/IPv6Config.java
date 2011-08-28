@@ -28,6 +28,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -40,6 +41,8 @@ import android.widget.TextView;
 import android.widget.TextView.BufferType;
 
 public class IPv6Config extends Activity {
+	private final static String RECOMMENDED_BUSYBOX_INSTALLER_LINK = "market://details?id=com.jrummy.busybox.installer";
+	
 	private CheckBox autoStart;
 	private CheckBox enablePrivacy;
 	private CheckBox enable6to4Tunnel;
@@ -95,6 +98,18 @@ public class IPv6Config extends Activity {
 		           }
 		       });
 		    builder.create().show();
+		    enable6to4Tunnel.setEnabled(false);
+		    force6to4Tunnel.setEnabled(false);
+		}
+		
+		// and then verify if we have a working ip binary
+		if (LinuxIPCommandHelper.getIPCommandLocation() == null) {
+			AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			builder.setMessage(getString(R.string.noWorkingIpBinaryDetected) + 
+					LinuxIPCommandHelper.getAllTriedIPCommandLocations())
+		       .setCancelable(true);
+		    builder.create().show();
+		    
 		}
 
         displayLocalAddresses();
@@ -143,6 +158,11 @@ public class IPv6Config extends Activity {
             	emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, aEmailList);
             	emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "[IPv6Config feedback]");
             	startActivity(Intent.createChooser(emailIntent, getString(R.string.emailChooser)));
+            	break;
+            case R.id.install_busybox_menuitem:
+            	Intent installIntent = new Intent(Intent.ACTION_VIEW);
+            	installIntent.setData(Uri.parse(RECOMMENDED_BUSYBOX_INSTALLER_LINK));
+            	startActivity(installIntent);
             	break;
         }
         return true;

@@ -60,11 +60,22 @@ public class LinuxIPCommandHelper {
 	/** Identifies the device of a route. */
 	private final static String ROUTE_DEVICE = "dev";
 
-	public final static String[] GET_INTERFACES_LINUX_BINARY_LOCATIONS = { 
-		"/sbin/ip",
-		"/bin/ip",
-		"/system/bin/ip",
-		"/system/xbin/ip" };
+	/** Search for the "ip" and "busybox" binaries at these locations. */
+	public final static String[] LINUX_BINARY_LOCATIONS = { 
+		"/sbin/",
+		"/bin/",
+		"/system/bin/",
+		"/system/xbin/" };
+
+	/** Preferred is to use the "ip" binary directly. 
+	 * @see BUSYBOX_BINARY_PREFIX
+	 */
+	public final static String IP_BINARY = "ip";
+
+	/** But if no (working) ip binary can be found, then try to use busybox with an "ip" applet.
+	 * @see IP_BINARY
+	 */
+	public final static String BUSYBOX_BINARY = "busybox";
 
 	/** Command to get and set network interface addresses and options under modern Linux systems. */
 	private final static String ADDRESSES_COMMAND = " addr";
@@ -117,33 +128,57 @@ public class LinuxIPCommandHelper {
 	
 	/** Static initializer: find out where to call the "ip" binary from and remember for future use. */
 	private static String ipBinaryLocation = null;
-	static {
-		String triedPaths = "";
-		// sanity check: can we actually execute our command?
-		for (String binary : GET_INTERFACES_LINUX_BINARY_LOCATIONS) {
+	private static String ipBinaryTriedPaths = null;
+	
+	/** Helper function to try a list of paths with a command to verify if "ip addr" can be executed correctly.
+	 * 
+	 * @return true if a working "ip addr" call could be made, false otherwise. If true is returned,
+	 * 		   the working full binary path is stored in ipBinaryLocation.
+	 * @see ipBinaryLocation 
+	 */
+	private static boolean tryIPBinaries(String[] paths, String cmd, String cmd2) {
+		for (String path : paths) {
+			String binary = path + cmd;
+			// sanity check: can we actually execute our command?
+			logger.warning("Checking for availibility of command '" + binary + "'");
 			if (new File(binary).canRead()) {
+				if (cmd2 != null)
+					binary = binary + " " + cmd2;
 				/* second sanity check: does this binary work?
 				 * (E.g. on the Samsung Galaxy S2, there actually is a binary under 
 				 * /system/bin/ip that claims to work, but doesn't).
 				 */
 				try {
+					logger.warning("Trying to execute cmd '" + binary + ADDRESSES_COMMAND + "'");
 					Command.executeCommand(binary + ADDRESSES_COMMAND, false, false, null);
+					logger.warning("Found working ip binary in " + binary);
 					ipBinaryLocation = binary;
-					break;
+					return true;
 				} catch (Exception e) {
 					logger.warning("Found ip binary in " + binary + 
 							", but does not behave as expected. Trying next location.");
 				}
 			}
-			triedPaths = triedPaths + " " + binary;
+			ipBinaryTriedPaths = ipBinaryTriedPaths + " '" + binary + "'";
 		}
-		logger.warning("Could not find ip binary in" + triedPaths + 
-				", unable to read network interface details");
+		return false;
 	}
 	
 	/** Helper to locate a usable "ip" command or null if none is found. */
 	public static String getIPCommandLocation() {
+		if (ipBinaryLocation == null) {
+			ipBinaryTriedPaths = "";
+			
+			if (! tryIPBinaries(LINUX_BINARY_LOCATIONS, IP_BINARY, null) && 
+				! tryIPBinaries(LINUX_BINARY_LOCATIONS, BUSYBOX_BINARY, IP_BINARY))
+				logger.severe("Could not find ip binary in" + ipBinaryTriedPaths + 
+					", will be unable to read network interface details");
+		}
 		return ipBinaryLocation;
+	}
+	
+	public static String getAllTriedIPCommandLocations() {
+		return ipBinaryTriedPaths;
 	}
 
 	/** This class represents an (IPv4 or IPv6) address with an optional network mask. */
@@ -381,12 +416,12 @@ public class LinuxIPCommandHelper {
 	 * @param queryIPv6 If true, then IPv6 routes are queried. If false, then IPv4 routes are queried.
 	 */
 	public static LinkedList<RouteDetail> getRouteOutput(boolean queryIPv6) throws IOException {
-		logger.finer("Acquiring route details");
-		
 		String cmd = getIPCommandLocation() + (queryIPv6 ? OPTION_IPv6_ONLY : "") + ROUTES_COMMAND;
 		StringTokenizer lines = null;
 		LinkedList<RouteDetail> list = new LinkedList<RouteDetail>();
-		
+
+		logger.warning("Acquiring route details with command '" + cmd + "'");
+
 		try {
 			lines =	new StringTokenizer(Command.executeCommand(cmd,	false, false, null), "\n");
 		} catch (Exception e) {
