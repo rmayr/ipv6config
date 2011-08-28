@@ -140,7 +140,7 @@ public class LinuxIPCommandHelper {
 		for (String path : paths) {
 			String binary = path + cmd;
 			// sanity check: can we actually execute our command?
-			logger.warning("Checking for availibility of command '" + binary + "'");
+			logger.finer("Checking for availibility of command '" + binary + "'");
 			if (new File(binary).canRead()) {
 				if (cmd2 != null)
 					binary = binary + " " + cmd2;
@@ -149,9 +149,9 @@ public class LinuxIPCommandHelper {
 				 * /system/bin/ip that claims to work, but doesn't).
 				 */
 				try {
-					logger.warning("Trying to execute cmd '" + binary + ADDRESSES_COMMAND + "'");
+					logger.fine("Trying to execute cmd '" + binary + ADDRESSES_COMMAND + "'");
 					Command.executeCommand(binary + ADDRESSES_COMMAND, false, false, null);
-					logger.warning("Found working ip binary in " + binary);
+					logger.fine("Found working ip binary in " + binary);
 					ipBinaryLocation = binary;
 					return true;
 				} catch (Exception e) {
