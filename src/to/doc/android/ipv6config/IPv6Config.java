@@ -2,7 +2,7 @@
  *  Project: Android IPv6Config
  *  Description: Android application to change IPv6 kernel configuration
  *  Author: René Mayrhofer
- *  Copyright: René Mayrhofer, 2011-2011
+ *  Copyright: René Mayrhofer, 2011-2013
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 
@@ -224,7 +224,7 @@ public class IPv6Config extends Activity {
     			// special handling for IPv4 addresses
     			if (outboundAddr.equals(v4LocalDefaultAddress.getText())) {
     				outboundAddr += "\n" + getString(R.string.ipv4GlobalAddressMatchesLocal);
-    				globalAddress.setTextColor(Color.BLUE);
+    				globalAddress.setTextColor(Color.LTGRAY);
 				
     				//enable6to4Tunnel.setEnabled(true);
     				enable6to4Tunnel.setText(R.string.create6to4Tunnel);

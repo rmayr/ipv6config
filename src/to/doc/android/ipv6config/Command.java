@@ -2,7 +2,7 @@
  *  Project: Gibraltar-Webinterface
  *  Description: webinterface for the firewall gibraltar
  *  Author: Rene Mayrhofer
- *  Copyright: Rene Mayrhofer, 2001-2011
+ *  Copyright: Rene Mayrhofer, 2001-2013
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 

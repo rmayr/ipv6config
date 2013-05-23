@@ -2,7 +2,7 @@
  *  Project: Android IPv6Config
  *  Description: Android application to change IPv6 kernel configuration
  *  Author: René Mayrhofer
- *  Copyright: René Mayrhofer, 2011-2011
+ *  Copyright: René Mayrhofer, 2011-2013
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 
@@ -35,8 +35,12 @@ public class LinuxIPCommandHelper {
 
 	/** Identifies an Ethernet interface and, funnily enough, sometimes also the GPRS/UMTS interfaces. */
 	private final static String ETHERNET_INTERFACE = "link/ether";
-	/** Identifies an Ethernet interface and, funnily enough, sometimes also the GPRS/UMTS interfaces. */
+	/** Identifies a PPP interface and, therefore, GPRS/UMTS connections using PPP. */
 	private final static String PPP_INTERFACE = "link/ppp";
+	/** Identifies a tun interface, which is sometimes also used for upstream connectivity on Android. */
+	private final static String TUN_INTERFACE = "link/[65534]";
+	/** Identifies an ADB interface, used for upstream connectivity on Android when connected to a development host. */
+	private final static String ADB_INTERFACE = "link/[530]";
 	
 	/** Identifier for starting the MTU option in the interface line. */
 	private final static String INTERFACE_MTU = "mtu";
@@ -216,6 +220,7 @@ public class LinuxIPCommandHelper {
 		public String mac;
 		public boolean isUp = false;
 		public boolean isPPP = false;
+		public boolean isOther = false;
 		public int mtu;
 		public LinkedList<InetAddressWithNetmask> addresses = new LinkedList<InetAddressWithNetmask>();
 		
@@ -285,9 +290,9 @@ public class LinuxIPCommandHelper {
 				logger.finest("getIfaceOutput: start of new block");
 				
 				// starting a new block, flush the last interface (if we have one) 
-				// only link/ether and link/ppp for now
+				// only link/ether and link/ppp and two other types (tun and adb) for now
 				// in the future, might skip the cur.mac != null check to include all interface types
-				if (cur != null && (cur.mac != null || cur.isPPP)) {
+				if (cur != null && (cur.mac != null || cur.isPPP || cur.isOther)) {
 					logger.finest("getIfaceOutput: adding to list: " + cur.name);
 					list.add(cur);
 				}
@@ -349,6 +354,14 @@ public class LinuxIPCommandHelper {
 						cur.isPPP = true;
 						logger.finest("getIfaceOutput: found PPP interface " + cur.name);
 					}
+					else if (opt.equals(TUN_INTERFACE)) {
+						cur.isOther = true;
+						logger.finest("getIfaceOutput: found TUN interface " + cur.name);
+					}
+					else if (opt.equals(ADB_INTERFACE)) {
+						cur.isOther = true;
+						logger.finest("getIfaceOutput: found ADB interface " + cur.name);
+					}
 					
 					// "lo" marks the end of line, but also check explicitly
 					if (opt.equals("lo") || !options.hasMoreTokens()) break;
@@ -387,7 +400,7 @@ public class LinuxIPCommandHelper {
 			}
 		}		
 		// save the last block info
-		if (cur != null && (cur.mac != null || cur.isPPP)) {
+		if (cur != null && (cur.mac != null || cur.isPPP || cur.isOther)) {
 			logger.finest("getIfaceOutput: adding to list: " + cur.name);
 			list.add(cur);
 		}
