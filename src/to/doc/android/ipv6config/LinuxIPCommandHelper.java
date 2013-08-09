@@ -40,7 +40,7 @@ public class LinuxIPCommandHelper {
 	/** Identifies a tun interface, which is sometimes also used for upstream connectivity on Android. */
 	private final static String TUN_INTERFACE = "link/[65534]";
 	/** Identifies an ADB interface, used for upstream connectivity on Android when connected to a development host. */
-	private final static String ADB_INTERFACE = "link/[530]";
+	private final static String USB_INTERFACE = "link/[530]";
 	
 	/** Identifier for starting the MTU option in the interface line. */
 	private final static String INTERFACE_MTU = "mtu";
@@ -358,7 +358,7 @@ public class LinuxIPCommandHelper {
 						cur.isOther = true;
 						logger.finest("getIfaceOutput: found TUN interface " + cur.name);
 					}
-					else if (opt.equals(ADB_INTERFACE)) {
+					else if (opt.equals(USB_INTERFACE)) {
 						cur.isOther = true;
 						logger.finest("getIfaceOutput: found ADB interface " + cur.name);
 					}

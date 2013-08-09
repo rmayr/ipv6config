@@ -39,6 +39,8 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import android.util.Log;
+
 /** This is a helper class to query local and externally visible IPv6 addresses. */
 public class IPv6AddressesHelper {
 	/** Our logger for this class. */
@@ -77,10 +79,13 @@ public class IPv6AddressesHelper {
      */
     public static String getOutboundIPAddress(boolean queryIPv6) {
     	try {
+        	Log.d(Constants.LOG_TAG, "test20: " + queryIPv6);
     		// first resolve the host's AAAA entries to make sure to connect to the host via IPv6
 			InetAddress[] serverAddrs = InetAddress.getAllByName(GET_OUTBOUND_IP_SERVER);
 			InetAddress server = null;
+	    	Log.d(Constants.LOG_TAG, "test21");
 			for (InetAddress addr : serverAddrs) {
+		    	Log.d(Constants.LOG_TAG, "test22: " + addr);
 				if (queryIPv6 && addr instanceof Inet6Address) {
 					logger.log(Level.FINE, "Resolved " + GET_OUTBOUND_IP_SERVER + " to IPv6 address " + addr.getHostAddress());
 					if (server == null)
@@ -99,7 +104,9 @@ public class IPv6AddressesHelper {
 								GET_OUTBOUND_IP_SERVER + ", but expected only one. Will use the one found first " +
 								server.getHostAddress() + " and ignore the one found now " + addr.getHostAddress());
 				} 
+		    	Log.d(Constants.LOG_TAG, "test23");
 			}
+	    	Log.d(Constants.LOG_TAG, "test24");
 			if (server == null) {
 				if (queryIPv6) server = InetAddress.getByName(GET_OUTBOUND_IP_SERVER_ADDRESSv6);
 				else server = InetAddress.getByName(GET_OUTBOUND_IP_SERVER_ADDRESSv4);
@@ -107,6 +114,7 @@ public class IPv6AddressesHelper {
 						(queryIPv6 ? "IPv6" : "IPv4" ) + " address, assuming DNS resolver/server to be broken. " +
 						"Will now try with hard-coded address " + server + " although it may have changed.");
 			}
+	    	Log.d(Constants.LOG_TAG, "test25");
 			
 			// now that we have the IPv6 address to connect to, query the URL
 			String url = GET_OUTBOUND_IP_URL_PROTOCOL + 
@@ -116,6 +124,7 @@ public class IPv6AddressesHelper {
 			return queryServerForOutboundAddress(url);
 		} 
     	catch (UnknownHostException e) {
+        	Log.d(Constants.LOG_TAG, "test26");
 			logger.log(Level.WARNING, "Unable to resolve host " + GET_OUTBOUND_IP_SERVER, e);
 			return null;
 		} 

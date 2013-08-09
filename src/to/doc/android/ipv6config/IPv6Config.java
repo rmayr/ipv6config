@@ -303,10 +303,12 @@ public class IPv6Config extends Activity {
     public void displayLocalAddresses() {
     	// try to determine local address associated with default route
     	Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
+    	Log.i(Constants.LOG_TAG, "test1");
     	if (outboundIPv4Addr != null)
     		v4LocalDefaultAddress.setText(outboundIPv4Addr.getHostAddress());
     	else
     		v4LocalDefaultAddress.setText(R.string.determineLocalFailed);
+    	Log.i(Constants.LOG_TAG, "test1");
     	
         // doesn't work on Android < 3.0
     	//getLocalAddresses();

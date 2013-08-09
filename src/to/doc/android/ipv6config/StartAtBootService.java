@@ -181,12 +181,17 @@ public class StartAtBootService extends Service {
 			return false;
 		}
 		
+    	Log.d(Constants.LOG_TAG, "test10");
+		
 		// determine outbound IPv4 address as seen from the outside
 		String globalIPv4AddrStr = IPv6AddressesHelper.getOutboundIPAddress(false);
 		Inet4Address globalIPv4Addr = null;
+    	Log.d(Constants.LOG_TAG, "test11");
 		try {
+	    	Log.d(Constants.LOG_TAG, "test12");
 			if (globalIPv4AddrStr != null)
 				globalIPv4Addr = (Inet4Address) Inet4Address.getByName(globalIPv4AddrStr);
+	    	Log.d(Constants.LOG_TAG, "test13");
 		} catch (UnknownHostException e) {
 			Log.w(Constants.LOG_TAG, "Unable to parse globally visible IPv4 address '" +
 					globalIPv4AddrStr + "', probably unable to contact resolver server", e);
@@ -196,6 +201,7 @@ public class StartAtBootService extends Service {
 					globalIPv4AddrStr + "', unknown reason", e);
 			globalIPv4Addr = null;
 		}
+    	Log.d(Constants.LOG_TAG, "test15");
 		// check if we could create a tunnel now (i.e. if local and global IPv4 addresses match)
 		if (globalIPv4Addr != null && outboundIPv4Addr.equals(globalIPv4Addr))
 			return true;
@@ -221,19 +227,26 @@ public class StartAtBootService extends Service {
 		
 		// determine outbound IPv4 address based on routes
 		Inet4Address outboundIPv4Addr = LinuxIPCommandHelper.getOutboundIPv4Address();
-
+    	Log.d(Constants.LOG_TAG, "test3");
+		
 		if (! is6to4TunnelPossible(outboundIPv4Addr, force6to4Tunnel)) {
+	    	Log.d(Constants.LOG_TAG, "test4");
+
 			if (displayNotifications)
 				Toast.makeText(context,	context.getString(R.string.toast6to4AddressMismatch), 
 	        		Toast.LENGTH_LONG).show();
 		    return false;
 		}
 		else {
+	    	Log.d(Constants.LOG_TAG, "test5");
+			
+			String v6prefix = IPv6AddressesHelper.compute6to4Prefix(outboundIPv4Addr); 
+			Log.i(Constants.LOG_TAG, "Creating IPv6 tunnel via output IPv4 address " +
+					outboundIPv4Addr + ": IPv6 prefix is now " + v6prefix);
 			// finally create tunnel
 			if (LinuxIPCommandHelper.create6to4TunnelInterface(
 					IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
-					outboundIPv4Addr, 
-					IPv6AddressesHelper.compute6to4Prefix(outboundIPv4Addr), 0)) {
+					outboundIPv4Addr, v6prefix, 0)) {
 				if (displayNotifications)
 					Toast.makeText(context,	context.getString(R.string.toast6to4Success), 
 		        		Toast.LENGTH_LONG).show();
