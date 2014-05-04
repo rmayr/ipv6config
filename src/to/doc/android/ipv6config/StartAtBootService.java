@@ -34,8 +34,7 @@ public class StartAtBootService extends Service {
         @Override
         public void onReceive(Context context, Intent intent) {
         	ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        	int networkType = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_TYPE);
-        	NetworkInfo networkInfo = connectivityManager.getNetworkInfo(networkType);
+        	NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         	
         	if (networkInfo == null) {
         		Log.e(Constants.LOG_TAG, "Cannot cat network info, something is seriously wrong here.");
