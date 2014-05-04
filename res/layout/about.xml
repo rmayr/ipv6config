@@ -4,5 +4,13 @@
   android:layout_width="fill_parent"
   android:layout_height="fill_parent"
   android:padding="10dip">
-    <TextView android:layout_width="fill_parent" android:layout_height="fill_parent" android:id="@+id/aboutText" android:text="@string/aboutText" android:autoLink="email|web"></TextView>
+
+    <TextView
+        android:id="@+id/aboutText"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:autoLink="email|web"
+        android:linksClickable="true"
+        android:text="@string/aboutText" >
+</TextView>
 </ScrollView>

@@ -4,12 +4,13 @@ import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.BitSet;
 import java.util.Date;
+import java.util.Locale;
 import java.util.StringTokenizer;
 
 /** This is a small helper class providing various helper methods for dealing
  * with strings. There should be no other dependency than on string 
  * manipulation!
- * @author Rene Mayrhofer, Andreas Wöckl, Richard Leitner
+ * @author René Mayrhofer, Andreas Wöckl, Richard Leitner
  */
 public class StringHelper {
 	/**returns true if a string is null or ""
@@ -38,7 +39,7 @@ public class StringHelper {
 	 * @return The amount of bytes converted to the given amount in a String.
 	 */
 	public static String convertBytesTo(String bytes, String convertTo) {
-		Long bytesInLong = new Long(bytes.trim());
+		Long bytesInLong = Long.valueOf(bytes.trim());
 		long bytesToCalculate = bytesInLong.longValue();
 		if (convertTo.equalsIgnoreCase("KB")) {
 			bytesToCalculate = bytesToCalculate / 1024;
@@ -58,7 +59,7 @@ public class StringHelper {
 	 * @return The amount of bytes converted .
 	 */
 	public static String convertToBytes(String value, String convertFrom) {
-		Long bytesInLong = new Long(value);
+		Long bytesInLong = Long.valueOf(value);
 		long bytesToCalculate = bytesInLong.longValue();
 		if (convertFrom.equalsIgnoreCase("KB")) {
 			bytesToCalculate = bytesToCalculate * 1024;
@@ -97,10 +98,10 @@ public class StringHelper {
 	 * converts a Linux/Unix timestamp that is given as parameter to a human readable time
 	 */
 	public static String convertTimestamp(String stmp) {
-		Long time = new Long(stmp);
+		Long time = Long.valueOf(stmp);
 		Date dt = new Date(time.longValue());
-		//SimpleDateFormat df = new SimpleDateFormat( "yyyy-MM-dd HH:mm" );
-		SimpleDateFormat df = new SimpleDateFormat( "dd.MM.yyyy HH:mm" );
+		SimpleDateFormat df = new SimpleDateFormat( "yyyy-MM-dd HH:mm", Locale.US);
+		//SimpleDateFormat df = new SimpleDateFormat( "dd.MM.yyyy HH:mm", Locale.US);
 		return df.format( dt );
 	}
 
@@ -111,7 +112,7 @@ public class StringHelper {
 	 * @return The Unix timestamp that represents the date.
 	 */
 	public static long convertStringToTimestamp(String timeStr) {
-		SimpleDateFormat formatter = new SimpleDateFormat ("dd.MM.yyyy HH:mm");
+		SimpleDateFormat formatter = new SimpleDateFormat ("dd.MM.yyyy HH:mm", Locale.US);
 		// Parse the string into a Date.
 		ParsePosition pos = new ParsePosition(0);
 		Date date = formatter.parse(timeStr, pos);		
@@ -161,7 +162,7 @@ public class StringHelper {
 	            // -- -- Milliseconds
 	            //strMillisecs = String.valueOf(lRest); // not used ...
 	            
-	        return (new Integer(strDays).intValue() != 0 ? strDays + " days " : "") +
+	        return (Integer.valueOf(strDays).intValue() != 0 ? strDays + " days " : "") +
 	        	strHours + ":" + strMinutes + ":" + strSeconds;
 	    }
 	    else

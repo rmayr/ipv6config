@@ -33,28 +33,30 @@ public class StartAtBootService extends Service {
 	private class ConnectivityReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-        	NetworkInfo info = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_INFO);
-        	if (info != null) {
-        		switch (info.getState()) {
-
-        		case CONNECTED:
-        			Log.i(Constants.LOG_TAG, "Network state change: connected, re-evaluating 6to4 tunnel configuration");
-        			SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
-        			boolean enable6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false);
-        			boolean force6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false);
-        			boolean displayNotifications = prefsPrivate.getBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, true);
-        			Log.i(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
-        			Log.i(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
-        	    	if (enable6to4Tunnel) 
-        	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel, displayNotifications);
-        			break;
-
-        		case DISCONNECTED:
-        			Log.i(Constants.LOG_TAG, "Network state change: disconnected, deconfiguring 6to4 tunnel");
-    				LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
-        			break;
-        		}
+        	ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        	int networkType = intent.getParcelableExtra(ConnectivityManager.EXTRA_NETWORK_TYPE);
+        	NetworkInfo networkInfo = connectivityManager.getNetworkInfo(networkType);
+        	
+        	if (networkInfo == null) {
+        		Log.e(Constants.LOG_TAG, "Cannot cat network info, something is seriously wrong here.");
+        		return;
         	}
+        	
+            if (networkInfo.isConnected()) {
+    			Log.i(Constants.LOG_TAG, "Network state change: " + networkInfo.getTypeName() + " connected, re-evaluating 6to4 tunnel configuration");
+    			SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
+    			boolean enable6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false);
+    			boolean force6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false);
+    			boolean displayNotifications = prefsPrivate.getBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, true);
+    			Log.d(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
+    			Log.d(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
+    	    	if (enable6to4Tunnel) 
+    	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel, displayNotifications);
+            } else {
+                Log.i("APP_TAG", networkInfo.getTypeName() + " - DISCONNECTED");
+    			Log.i(Constants.LOG_TAG, "Network state change: disconnected, deconfiguring 6to4 tunnel");
+				LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
+            }
         }
 	}
 

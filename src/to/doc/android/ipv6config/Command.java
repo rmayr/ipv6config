@@ -1,8 +1,8 @@
 /*****************************************************************************
  *  Project: Gibraltar-Webinterface
  *  Description: webinterface for the firewall gibraltar
- *  Author: Rene Mayrhofer
- *  Copyright: Rene Mayrhofer, 2001-2013
+ *  Author: René Mayrhofer
+ *  Copyright: René Mayrhofer, 2001-2014
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version 3 
@@ -78,7 +78,7 @@ public class Command {
 					synchronized (sysCommandList) {
 						logger.finest("AsyncRunHelper.run Put in List " + command);
 						// starting the command right now, so set state to 1
-						sysCommandList.put(command, new Integer(1));
+						sysCommandList.put(command, Integer.valueOf(1));
 					}				
 					// execute the command
 					logger.finer("Immediately BEFORE running Command " + command);
@@ -137,7 +137,7 @@ public class Command {
 			// only add if not already running or scheduled to run
 			if (!sysCommandList.containsKey(systemCommand)) {
 				logger.info("ADDING new syscommand " + systemCommand + " and starting thread");
-				sysCommandList.put(systemCommand, new Integer(0));
+				sysCommandList.put(systemCommand, Integer.valueOf(0));
 				// new to the list, starting thread for this system command
 		    	AsyncRunHelper t = new AsyncRunHelper(systemCommand, editsSystem, requiresSU);
 				t.start();
@@ -151,7 +151,7 @@ public class Command {
 				int curState = getSysCommandState(systemCommand);
 				if (curState == 1) {
 					logger.info("COMMAND is already executing, scheduling for re-execution");
-					sysCommandList.put(systemCommand, new Integer(2));
+					sysCommandList.put(systemCommand, Integer.valueOf(2));
 				}
 			}
 		}
@@ -168,7 +168,7 @@ public class Command {
 			// only start it if it is not already running or scheduled to run
 			if (!sysCommandList.containsKey(combinedCommand)) {
 				logger.info("ADDING new continuous syscommand " + combinedCommand + " and starting process");
-				sysCommandList.put(combinedCommand, new Integer(3));
+				sysCommandList.put(combinedCommand, Integer.valueOf(3));
 				proc = checkAndExecute(combinedCommand, null, false, requiresSU, null);
 				// started process, so now remember the Process object
 				synchronized (continuousCommands) {
@@ -330,16 +330,6 @@ public class Command {
 	private static String convertToHTML(String line)  {
 		if (StringHelper.isBlank(line)) {
 			return "";
-			// TODO: now the CALLER of Command needs to create that output!
-			/*try {
-				return ci.getLangSession().getText(LangConst.NO_SYSTEM_OUTPUT);
-			}catch (IOException ioEx) {
-			  return "Unexpected Error. Please contact Administrator (Error: Necessary language file not found )";
-			}catch (JDOMException jEx) {
-			  return "Unexpected Error. Please contact Administrator (Error: Language file not valid)";
-			}catch (LanguageElemNotFoundException lEx) {
-			  return "Unexpected Error. Please contact Administrator ";
-			}*/
 		}
 		StringTokenizer tok = new StringTokenizer(line,"\n");
 		String str = "";

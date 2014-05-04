@@ -2,7 +2,7 @@
  *  Project: Android IPv6Config
  *  Description: Android application to change IPv6 kernel configuration
  *  Author: René Mayrhofer
- *  Copyright: René Mayrhofer, 2011-2013
+ *  Copyright: René Mayrhofer, 2011-2014
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 
@@ -31,14 +31,13 @@ import java.util.Enumeration;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 /** This is a helper class to query local and externally visible IPv6 addresses. */
@@ -130,15 +129,24 @@ public class IPv6AddressesHelper {
 		} 
     }
     
-    /** This method queries the passed customURL or https://doc.to/getip/ if 
+    /** This method queries the passed customURL or "https://doc.to/getip/" if 
      * null is given and expects to read the outbound IP address of this client
      * in return.
+     * 
+     * The only reason to use HTTPS instead of plain HTTP is that the latter is
+     * often subject to tampering by deep packet inspection and other 
+     * potentially unsafe Internet practices. Therefore, we don't care about
+     * validating the particular HTTPS URL and disable all certificate 
+     * validation on purpose. If a man-in-the-middle attack is being performed
+     * on this particular connection, then it is highly unlikely that we will
+     * be able to establish an IPv6 tunnel anyways.
      * 
      * @param customURL The URL to query. If null, GET_OUTBOUND_IP_URL will 
      *                  be used. 
      * @return the outbound IP address of this host as seen be the server.
      */
-    public static String queryServerForOutboundAddress(String customURL) {
+    @SuppressLint("TrulyRandom")
+	public static String queryServerForOutboundAddress(String customURL) {
 	    String url = customURL != null ? customURL : GET_OUTBOUND_IP_URL;
 	    
     	try {

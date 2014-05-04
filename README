@@ -15,7 +15,7 @@ Including the MAC address in this automatically generated IPv6 addressing
 scheme means that, independently of the network a specific device connects to,
 the last 64 Bits of its IPv6 address will always remain the same. Even when 
 moving between different networks, each device using this scheme is therefore
-uniquely identifieable by its suffix. This allows to easily track devices as 
+uniquely identifiable by its suffix. This allows to easily track devices as 
 they connect to different networks and whenever they use any network resources.
 
 What does address privacy do?
@@ -81,4 +81,4 @@ development costs, then please buy the donate version. If not, then just take
 the free one.
 
 ==============================================================================
-Copyright (C) René Mayrhofer, 2011-2013
+Copyright (C) René Mayrhofer, 2011-2014

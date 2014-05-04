@@ -2,7 +2,7 @@
  *  Project: Gibraltar-Webinterface
  *  Description: webinterface for the firewall gibraltar
  *  Author: Andreas Woeckl
- *  Copyright: Andreas Woeckl 2001-2013
+ *  Copyright: René Mayrhofer, Andreas Woeckl 2001-2014
  *****************************************************************************/
 
 package to.doc.android.ipv6config;
