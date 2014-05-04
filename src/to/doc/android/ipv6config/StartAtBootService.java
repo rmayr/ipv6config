@@ -37,7 +37,7 @@ public class StartAtBootService extends Service {
         	NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         	
         	if (networkInfo == null) {
-        		Log.e(Constants.LOG_TAG, "Cannot cat network info, something is seriously wrong here.");
+        		Log.e(Constants.LOG_TAG, "Cannot get network info, something is seriously wrong here.");
         		return;
         	}
         	
