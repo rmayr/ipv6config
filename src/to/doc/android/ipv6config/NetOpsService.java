@@ -48,15 +48,10 @@ public class NetOpsService extends IntentService {
 	
 	public NetOpsService() {
 		super("IPv6Config-NetOpsService");
-//		setIntentRedelivery(true);	// make sure that it is re-executed if the thread dies (cf. START_STICKY for service)
+		toastHandler = new Handler();
+		setIntentRedelivery(true);	// make sure that it is re-executed if the thread dies (cf. START_STICKY for service)
 	}
 	
-	@Override
-	public void onCreate() {
-		toastHandler = new Handler();
-		Log.v(Constants.LOG_TAG, "NetOpsService created");
-	}
- 
 	@Override
 	protected void onHandleIntent (Intent intent) {
 		Log.v(Constants.LOG_TAG, "NetOpsService.onHandleIntent starting");	        
