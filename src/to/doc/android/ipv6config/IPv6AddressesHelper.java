@@ -53,9 +53,9 @@ public class IPv6AddressesHelper {
 	 * connect via IPv6.
 	 */
 	public final static String GET_OUTBOUND_IP_SERVER = "doc.to";
-	public final static String GET_OUTBOUND_IP_SERVER_ADDRESSv6 = "2002:5078:37d:1::19";
-	public final static String GET_OUTBOUND_IP_SERVER_ADDRESSv4 = "80.120.3.103";
-	public final static int GET_OUTBOUND_IP_PORT = 444;
+	public final static String GET_OUTBOUND_IP_SERVER_ADDRESSv6 = "2002:1fc1:a27a:1::1";
+	public final static String GET_OUTBOUND_IP_SERVER_ADDRESSv4 = "31.193.162.123";
+	public final static int GET_OUTBOUND_IP_PORT = 443;
 
 	public final static String GET_OUTBOUND_IP_URL_PROTOCOL = "https://";
 	public final static String GET_OUTBOUND_IP_URL_PATH = "/getip/";

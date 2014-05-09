@@ -287,13 +287,13 @@ public class IPv6Config extends Activity {
     	Log.d(Constants.LOG_TAG, "forceAddressReload clicked");
     	savePreferences();
 
-    	Intent serviceCall = new Intent(getApplicationContext(), NetOpsService.class);
+    	Intent serviceCall = new Intent(this, NetOpsService.class);
     	serviceCall.putExtra(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
     	serviceCall.putExtra(Constants.PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
     	serviceCall.putExtra(Constants.PREFERENCE_FORCE_TUNNEL, force6to4Tunnel.isChecked());
     	// force an address reload
     	serviceCall.putExtra(NetOpsService.SERVICE_COMMAND_PARAM, NetOpsService.SERVICE_COMMAND_RELOAD);
-   		getApplicationContext().startService(serviceCall);
+   		startService(serviceCall);
 
     	// and reload address display
     	displayLocalAddresses();
