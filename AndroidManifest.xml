@@ -33,7 +33,14 @@
 			</intent-filter>
 		</receiver>
 
-		<service android:name=".StartAtBootService">
+		<receiver android:name=".ConnectivityChangeReceiver">
+			<intent-filter>
+				<action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+				<category android:name="android.intent.category.HOME" />
+			</intent-filter>
+		</receiver>
+		
+		<service android:name=".NetOpsService">
 		</service>
     </application>
 </manifest> 

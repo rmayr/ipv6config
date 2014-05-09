@@ -892,7 +892,7 @@ public class LinuxIPCommandHelper {
 				return false;
 			}
 			if (Command.executeCommand(SH_COMMAND, true, cmd6to4Route2, null, null) != 0) {
-				logger.severe("Unable to add 6to4 route 1 to tunnel interface " + iface);
+				logger.severe("Unable to add 6to4 route 2 to tunnel interface " + iface);
 				return false;
 			}
 			

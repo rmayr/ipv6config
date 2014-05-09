@@ -79,6 +79,10 @@ public class IPv6Config extends Activity {
         v4GlobalAddress = (TextView) findViewById(R.id.viewv4GlobalAddress);
         v4LocalDefaultAddress = (TextView) findViewById(R.id.viewv4LocalDefaultAddress);
         
+        Log.v(Constants.LOG_TAG, "IPv6Config.onCreate starting sanity checks");
+        
+        // TODO: use AsyncTask or IntentService to query the system using SU 
+        
         ////// SANITY CHECK 1 //////
         // before doing anything fancy, try to detect if we can get root privileges
         boolean canSu = false;
@@ -128,14 +132,9 @@ public class IPv6Config extends Activity {
 		    force6to4Tunnel.setChecked(false);
 		}
 
-        displayLocalAddresses();
+        Log.v(Constants.LOG_TAG, "IPv6Config.onCreate sanity checks passed, starting main display");
 
-        /* and make sure that the service is running so that it registers for
-         * connection change events, but don't let it do anything just now - noop 
-         */
-    	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
-    	serviceCall.putExtra(StartAtBootService.SERVICE_COMMAND_PARAM, StartAtBootService.SERVICE_COMMAND_NOOP);
-   		getApplicationContext().startService(serviceCall);
+        displayLocalAddresses();
     }
 
     /** Called when the activity is sent to the background or is terminated. */
@@ -276,7 +275,7 @@ public class IPv6Config extends Activity {
     	Log.d(Constants.LOG_TAG, "checkBoxEnablePrivacy clicked/changed status");
 
     	// apply change immediately when clicking the checkbox, but don't reload until forced
-    	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
+    	Intent serviceCall = new Intent(getApplicationContext(), NetOpsService.class);
     	serviceCall.putExtra(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
    		getApplicationContext().startService(serviceCall);
 
@@ -288,12 +287,12 @@ public class IPv6Config extends Activity {
     	Log.d(Constants.LOG_TAG, "forceAddressReload clicked");
     	savePreferences();
 
-    	Intent serviceCall = new Intent(getApplicationContext(), StartAtBootService.class);
+    	Intent serviceCall = new Intent(getApplicationContext(), NetOpsService.class);
     	serviceCall.putExtra(Constants.PREFERENCE_ENABLE_PRIVACY, enablePrivacy.isChecked());
     	serviceCall.putExtra(Constants.PREFERENCE_CREATE_TUNNEL, enable6to4Tunnel.isChecked());
     	serviceCall.putExtra(Constants.PREFERENCE_FORCE_TUNNEL, force6to4Tunnel.isChecked());
     	// force an address reload
-    	serviceCall.putExtra(StartAtBootService.SERVICE_COMMAND_PARAM, StartAtBootService.SERVICE_COMMAND_RELOAD);
+    	serviceCall.putExtra(NetOpsService.SERVICE_COMMAND_PARAM, NetOpsService.SERVICE_COMMAND_RELOAD);
    		getApplicationContext().startService(serviceCall);
 
     	// and reload address display
