@@ -3,89 +3,63 @@ package to.doc.android.ipv6config;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 
-import android.app.Service;
-import android.content.BroadcastReceiver;
+import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.IBinder;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
 
-public class StartAtBootService extends Service {
-	
+/** This class implements the heavy lifting of network operations: it queries 
+ * the current network status and will execute the root commands to change 
+ * system settings. It is implemented as an IntentService because network 
+ * operations and root (SU) operations may take some time.
+ * 
+ * Note that it no longer listens to network change events (it no longer 
+ * registers a BroadcastReceiver), because it seems that IntentServices cannot
+ * correctly receive these events. The new ConnectivityChangeReceiver is
+ * registered in Android Manifest to do that now.
+ * 
+ * @author René Mayrhofer
+ */
+public class NetOpsService extends IntentService {
 	/** By adding a parameter with this name to the Intent that is starting 
 	 * the service, specific behavior can be triggered depending on the 
 	 * value of this parameter.
 	 */
 	public final static String SERVICE_COMMAND_PARAM = "command";
-	/** Sending the "noop" command to the StartAtBootService will cause it to 
-	 * only register for changes, but don't do anything else.
-	 */
-	public final static String SERVICE_COMMAND_NOOP = "noop";
 	/** Forces a reload of network interface addresses. */
 	public final static String SERVICE_COMMAND_RELOAD = "reload";
 	
-	/** This helper class is used for receiving network connectivity change events. */
-	private class ConnectivityReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-        	ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        	NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        	
-        	if (networkInfo == null) {
-        		Log.e(Constants.LOG_TAG, "Cannot get network info, something is seriously wrong here.");
-        		return;
-        	}
-        	
-            if (networkInfo.isConnected()) {
-    			Log.i(Constants.LOG_TAG, "Network state change: " + networkInfo.getTypeName() + " connected, re-evaluating 6to4 tunnel configuration");
-    			SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
-    			boolean enable6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_CREATE_TUNNEL, false);
-    			boolean force6to4Tunnel = prefsPrivate.getBoolean(Constants.PREFERENCE_FORCE_TUNNEL, false);
-    			boolean displayNotifications = prefsPrivate.getBoolean(Constants.PREFERENCE_DISPLAY_NOTIFICATIONS, true);
-    			Log.d(Constants.LOG_TAG, "Set to create 6to4 tunnel: " + enable6to4Tunnel);
-    			Log.d(Constants.LOG_TAG, "Set to force 6to4 tunnel: " + force6to4Tunnel);
-    	    	if (enable6to4Tunnel) 
-    	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel, displayNotifications);
-            } else {
-                Log.i("APP_TAG", networkInfo.getTypeName() + " - DISCONNECTED");
-    			Log.i(Constants.LOG_TAG, "Network state change: disconnected, deconfiguring 6to4 tunnel");
-				LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
-            }
-        }
-	}
-
-	/** The reference to our network connectivity change listener. */
-	private ConnectivityReceiver receiver = null;
+	/** Need a handler for displaying toast messages. */
+	private Handler toastHandler;
 	
-	/** This service doesn't offer an interface. */
-	public IBinder onBind(Intent intent) {
-		return null;
+	/** Simple helper function for displaying a toast message in the correct
+	 * (main UI) thread. */
+	private void displayToast(final String msg) {
+		toastHandler.post(new Runnable() {  
+	        @Override  
+	        public void run() {  	   
+	        	Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show(); 
+            }
+		});
 	}
- 
+	
+	public NetOpsService() {
+		super("IPv6Config-NetOpsService");
+//		setIntentRedelivery(true);	// make sure that it is re-executed if the thread dies (cf. START_STICKY for service)
+	}
+	
 	@Override
 	public void onCreate() {
-		Log.v(Constants.LOG_TAG, "StartAtBootService Created");
-		
-		// register for receiving connectivity change events
-		receiver = new ConnectivityReceiver();
-        registerReceiver(receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+		toastHandler = new Handler();
+		Log.v(Constants.LOG_TAG, "NetOpsService created");
 	}
  
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		Log.v(Constants.LOG_TAG, "StartAtBootService -- onStartCommand()");	        
-
-		if (intent != null && intent.getExtras() != null && 
-				intent.getExtras().containsKey(SERVICE_COMMAND_PARAM) && 
-				SERVICE_COMMAND_NOOP.equals(intent.getExtras().getString(SERVICE_COMMAND_PARAM))) {
-			Log.w(Constants.LOG_TAG, "StartAtBootService skipping all actions because noop command received via intent");
-			return Service.START_STICKY;
-		}
+	protected void onHandleIntent (Intent intent) {
+		Log.v(Constants.LOG_TAG, "NetOpsService.onHandleIntent starting");	        
 
 		SharedPreferences prefsPrivate = getSharedPreferences(Constants.PREFERENCES_STORE, Context.MODE_PRIVATE);
 	        
@@ -132,35 +106,16 @@ public class StartAtBootService extends Service {
 			Log.w(Constants.LOG_TAG, "Now enabling address privacy on all currently known interfaces, this might take a few seconds...");
 	    	if (LinuxIPCommandHelper.enableIPv6AddressPrivacy(enablePrivacy, reload)) {
 	    		if (displayNotifications)
-	    			Toast.makeText(getApplicationContext(), 
-			    		enablePrivacy ? getApplicationContext().getString(R.string.toastEnableSuccess) : getApplicationContext().getString(R.string.toastDisableSuccess), 
-		        		Toast.LENGTH_LONG).show();
+	    			displayToast(enablePrivacy ? getApplicationContext().getString(R.string.toastEnableSuccess) : getApplicationContext().getString(R.string.toastDisableSuccess));
 	    	}
 			else {
-			    Toast.makeText(getApplicationContext(), 
-			    		enablePrivacy ? getApplicationContext().getString(R.string.toastEnableFailure) : getApplicationContext().getString(R.string.toastDisableFailure),
-		        		Toast.LENGTH_LONG).show();
+				displayToast(enablePrivacy ? getApplicationContext().getString(R.string.toastEnableFailure) : getApplicationContext().getString(R.string.toastDisableFailure));
 			}
 	    	
 	    	if (enable6to4Tunnel)
 	    		create6to4Tunnel(getApplicationContext(), force6to4Tunnel, displayNotifications);
 		}
-
-		// service needs to be sticky to listen to connection change events
-		return Service.START_STICKY;
-	}
- 
-	/*
-	 * In Android 2.0 and later, onStart() is depreciated.  Use
-	 * onStartCommand() instead, or compile against API Level 5 and
-	 * use both.
-	 * http://android-developers.blogspot.com/2010/02/service-api-changes-starting-with.html
-	 */
-	@Override
-	public void onStart(Intent intent, int startId) {
-		Log.v(Constants.LOG_TAG, "StartAtBootService -- onStart()");
-    		
-		onStartCommand(intent, 0, startId);
+		// as IntentService, we just register setIntentRedelivery(true) in the constructor instead of returning START_STICKY
 	}
  
 	@Override
@@ -175,7 +130,7 @@ public class StartAtBootService extends Service {
 	 *        associated with the local default route.
 	 * @param force6to4Tunnel If set to true, this method will always return true.
 	 */
-	private static boolean is6to4TunnelPossible(Inet4Address outboundIPv4Addr, boolean force6to4Tunnel) {
+	private boolean is6to4TunnelPossible(Inet4Address outboundIPv4Addr, boolean force6to4Tunnel) {
 		if (force6to4Tunnel) return true;
 		if (outboundIPv4Addr == null) {
 			Log.w(Constants.LOG_TAG, "Unknown IPv4 outbound addresss, cannot establish 6to4 tunnel");
@@ -216,7 +171,7 @@ public class StartAtBootService extends Service {
 	 *        even if the IPv4 addresses do not indicate it possible. 
 	 * @return true when a tunnel interface was established, false otherwise.
 	 */
-	private static boolean create6to4Tunnel(Context context, boolean force6to4Tunnel, boolean displayNotifications) {
+	private boolean create6to4Tunnel(Context context, boolean force6to4Tunnel, boolean displayNotifications) {
 		// first delete tunnel if it exists (if it doesn't, don't mind)
 		LinuxIPCommandHelper.deleteTunnelInterface(IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME);
 
@@ -234,8 +189,7 @@ public class StartAtBootService extends Service {
 	    	Log.d(Constants.LOG_TAG, "test4");
 
 			if (displayNotifications)
-				Toast.makeText(context,	context.getString(R.string.toast6to4AddressMismatch), 
-	        		Toast.LENGTH_LONG).show();
+				displayToast(context.getString(R.string.toast6to4AddressMismatch));
 		    return false;
 		}
 		else {
@@ -249,14 +203,12 @@ public class StartAtBootService extends Service {
 					IPv6AddressesHelper.IPv6_6to4_TUNNEL_INTERFACE_NAME, 
 					outboundIPv4Addr, v6prefix, 0)) {
 				if (displayNotifications)
-					Toast.makeText(context,	context.getString(R.string.toast6to4Success), 
-		        		Toast.LENGTH_LONG).show();
+					displayToast(context.getString(R.string.toast6to4Success));
 				return true;
 			}
 			else {
 				if (displayNotifications)
-					Toast.makeText(context,	context.getString(R.string.toast6to4Failure), 
-		        		Toast.LENGTH_LONG).show();
+					displayToast(context.getString(R.string.toast6to4Failure));
 				return false;
 			}
 		}
