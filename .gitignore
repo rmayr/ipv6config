@@ -7,8 +7,13 @@
 *.bbl
 *.bib.bak
 .directory
+.gradle
+.idea/workspace.xml
+.idea/libraries
 bin/
 gen/
+build/
+captures/
 donate/bin
 donate/gen
 local.properties

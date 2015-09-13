@@ -1,9 +1,0 @@
-gen.dir=../gen
-gen.absolute.dir=${gen.dir}
-out.dir=../bin
-out.absolute.dir=${out.dir}
-src.dir=../src
-src.absolute.dir=${src.dir}
-resource.dir=../res/android
-resource.absolute.dir=${resource.dir}
-
