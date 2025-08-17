@@ -1,3 +1,6 @@
+NOTE: MOVED TO https://codeberg.org/rmayr/ipv6config because Github is now a subsidiary of Microsoft AI stuff.
+===
+
 This applications allows to set some options for the IPv6 stack that is part
 of the main Linux kernel and also used on Android devices. Most importantly,
 it allows to automatically enable the "Privacy Extensions for Stateless 
